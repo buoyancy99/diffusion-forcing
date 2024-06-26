@@ -1,0 +1,16 @@
+defaults:
+  - base_dataset
+
+env_id: 'maze2d-large-v1'
+gamma: 1.0
+episode_len: 600
+observation_shape: [4]
+action_dim: 2
+goal_dim: 2
+
+observation_mean: [3.7296331e+00, 5.3047247e+00, 4.7289828e-05, 2.9168357e-05]
+observation_std: [1.8070312, 2.5687592, 2.4368455, 2.6493697]
+action_mean: [0.00100675, 0.00078245]
+action_std: [0.72493, 0.7394606]
+reward_mean: 0.0089225
+reward_std: 0.09403666

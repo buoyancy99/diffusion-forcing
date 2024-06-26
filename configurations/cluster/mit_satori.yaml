@@ -1,0 +1,21 @@
+defaults:
+  - base_slurm
+
+launch_template: |
+  #!/bin/bash
+
+  #SBATCH -J {name}
+  #SBATCH -o {log_dir}/out_%j.out
+  #SBATCH -e {log_dir}/error_%j.err
+  #SBATCH --mail-user={email}
+  #SBATCH --mail-type=FAIL
+  #SBATCH --gres=gpu:{num_gpus}
+  #SBATCH --cpus-per-task={num_cpus}
+  #SBATCH --mem={memory}
+  #SBATCH --time={time}
+
+  source ~/.bashrc
+  module load cuda/11.2
+  conda activate {env_name}
+  cd {project_root}
+  python -m main {python_args}

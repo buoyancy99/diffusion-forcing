@@ -1,0 +1,5 @@
+defaults:
+  - base_timeseries
+
+name: ts_solar
+gluonts_name: solar_nips

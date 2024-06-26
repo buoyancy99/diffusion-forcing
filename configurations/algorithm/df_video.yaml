@@ -1,0 +1,26 @@
+defaults:
+  - df_base
+
+z_shape: [16, "${dataset.resolution}", "${dataset.resolution}"] # 16 for dmlab, 32 for minecraft
+frame_stack: 4 # 4 for dmlab, 8 for minecraft
+weight_decay: 2e-3 # 1e-3 for dmlab, bigger for minecraft
+warmup_steps: 5000
+gt_first_frame: 0.0
+calc_crps_sum: False
+compute_fid_lpips: False
+uncertainty_scale: 1
+learnable_init_z: True
+optimizer_beta: [0.9, 0.99]
+
+diffusion:
+  objective: pred_v
+  use_snr: True
+  use_cum_snr: True
+  network_size: 48 # 48 for dmlab, 64 for minecraft
+  num_gru_layers: 1
+  sampling_timesteps: 100
+  ddim_sampling_eta: 0.0
+  beta_schedule: "sigmoid" # cosine for dmlab, sigmoid for minecraft
+  cum_snr_decay: 0.8 # 0.8 for dmlab, 0.96 for minecraft
+  clip_noise: 6 # helps numerical stablity when using fp16
+  

@@ -1,0 +1,14 @@
+defaults:
+  - base_video
+
+save_dir: ???
+action_stack: ???
+n_frames: ???  # number of actual frames devide by action_stack
+n_cameras: ???
+context_length: 1
+resolution: 32
+external_cond_dim: 0
+data_mean: "${dataset.save_dir}/mean_${dataset.action_stack}_${dataset.resolution}.npy"
+data_std: "${dataset.save_dir}/std_${dataset.action_stack}_${dataset.resolution}.npy"
+relative_action: False
+action_pad: mean

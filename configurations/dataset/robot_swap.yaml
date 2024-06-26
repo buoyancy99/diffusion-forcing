@@ -1,0 +1,12 @@
+defaults:
+  - base_robot
+
+save_dir: data/robot_swap
+action_stack: 15
+n_frames: 40
+n_cameras: 2
+observation_shape: [21, "${dataset.resolution}", "${dataset.resolution}"] # always num_cams * 3 + action_stack
+
+relative_action: False
+color_jitter: False
+random_crop: False

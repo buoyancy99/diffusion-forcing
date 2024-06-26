@@ -1,0 +1,5 @@
+defaults:
+  - base_timeseries
+
+name: ts_taxi
+gluonts_name: taxi_30min

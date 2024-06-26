@@ -1,0 +1,22 @@
+defaults:
+  - base_slurm
+
+is_compute_node_offline: True  # many slurm systems only allows internet on login node, not compute node
+
+launch_template: |
+  #!/bin/bash
+
+  #SBATCH -J {name}
+  #SBATCH -o {log_dir}/out_%j.out
+  #SBATCH -e {log_dir}/error_%j.err
+  #SBATCH --mail-user={email}
+  #SBATCH --mail-type=FAIL
+  #SBATCH --gres=gpu:volta:{num_gpus}
+  #SBATCH --cpus-per-task={num_cpus}
+  #SBATCH --mem={memory}
+  #SBATCH --time={time}
+
+  cd {project_root}
+  module load anaconda/2023a
+  
+  python -m main {python_args}

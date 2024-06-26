@@ -1,0 +1,16 @@
+# configuration parsing starts here
+defaults:
+  - experiment: exp_prediction # experiment yaml file name in configurations/experiments folder [fixme]
+  - dataset: ts_traffic # dataset yaml file name in configurations/dataset folder [fixme]
+  - algorithm: df_prediction # algorithm yaml file name in configurations/algorithm folder [fixme]
+  - cluster: null # optional, cluster yaml file name in configurations/cluster folder. Leave null for local compute
+
+debug: false # global debug flag will be passed into configuration of experiment, dataset and algorithm
+
+wandb:
+  entity: scene-representation-group # wandb account name / organization name [fixme]
+  project: diffusion_forcing # wandb project name; if not provided, defaults to root folder name [fixme]
+  mode: online # set wandb logging to online, offline or dryrun
+
+resume: null # wandb run id to resume logging and loading checkpoint from
+load: null # wanmdb run id containing checkpoint or a path to a checkpoint file 

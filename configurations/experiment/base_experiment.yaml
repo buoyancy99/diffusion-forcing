@@ -1,0 +1,2 @@
+debug: ${debug} # inherited from configurations/config.yaml
+tasks: [main] # tasks to run sequantially, such as [training, test], useful when your project has multiple stages and you want to run only a subset of them.

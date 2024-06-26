@@ -1,0 +1,10 @@
+# For time series datasets from GluonTS
+
+defaults:
+  - base_dataset
+
+context_length: ???     # automatically loaded from metadata
+observation_shape: ???  # automatically loaded from metadata
+metadata: "data/${dataset.name}/metadata.json"
+data_mean: "data/${dataset.name}/data_mean.npy"
+data_std: "data/${dataset.name}/data_std.npy"

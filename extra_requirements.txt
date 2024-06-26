@@ -1,0 +1,9 @@
+# decision making, since d4rl depends on old mujoco_py & binary
+cython<=3
+setuptools==65.5.0 
+wheel==0.40.0
+gym==0.19.0
+d4rl==1.1
+shimmy>=0.2.1
+stable-baselines3
+

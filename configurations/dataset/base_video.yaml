@@ -1,0 +1,12 @@
+defaults:
+  - base_timeseries
+
+save_dir: ???
+
+n_frames: 32
+context_length: 4
+resolution: 128
+observation_shape: [3, "${dataset.resolution}", "${dataset.resolution}"]
+external_cond_dim: 0
+validation_multiplier: 1
+

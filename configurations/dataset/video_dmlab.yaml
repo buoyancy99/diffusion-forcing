@@ -1,0 +1,10 @@
+defaults:
+  - base_video
+
+save_dir: data/dmlab
+n_frames: 36
+resolution: 64
+data_mean: 0.5
+data_std: 0.5
+external_cond_dim: 0
+context_length: 4

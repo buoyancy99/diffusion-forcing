@@ -1,0 +1,24 @@
+defaults:
+  - df_video
+
+z_shape: [32, "${dataset.resolution}", "${dataset.resolution}"]
+frame_stack: 1
+weight_decay: 1e-4
+warmup_steps: 2500
+gt_first_frame: 0.5
+calc_crps_sum: False
+compute_fid_lpips: False
+uncertainty_scale: 1
+n_cameras: "${dataset.n_cameras}"
+
+diffusion:
+  objective: pred_x0
+  use_snr: False
+  use_cum_snr: False
+  network_size: 32
+  num_gru_layers: 1
+  sampling_timesteps: 25
+  beta_schedule: "cosine"
+  
+robot:
+  address: "tcp://*:5555"

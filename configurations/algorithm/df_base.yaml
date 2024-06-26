@@ -1,0 +1,40 @@
+defaults:
+  - base_pytorch_algo
+
+x_shape: ${dataset.observation_shape}
+z_shape: [512]
+frame_stack: 1
+data_mean: ${dataset.data_mean}
+data_std: ${dataset.data_std}
+external_cond_dim: 0 #${dataset.action_dim}
+context_frames: ${dataset.context_length}
+weight_decay: 1e-4
+warmup_steps: 2000
+gt_first_frame: 0.0
+gt_cond_prob: 0.0 # setting this to 1 will give you teacher forcing + single frame diffusion
+uncertainty_scale: 1
+chunk_size: 1 # -1 for full trajectory diffusion, number to specify diffusion chunk size
+calc_crps_sum: 100 # generate multiple samples for computing crps_sum
+learnable_init_z: False
+optimizer_beta: [0.9, 0.999]
+
+diffusion:
+  network_size: 32
+  beta_schedule: cosine
+  objective: pred_x0
+  use_snr: False
+  use_cum_snr: False
+  snr_clip: 5.0
+  cum_snr_decay: 0.9
+  timesteps: 1000
+  self_condition: False
+  ddim_sampling_eta: 1.0
+  p2_loss_weight_gamma: 0
+  p2_loss_weight_k: 1
+  schedule_fn_kwargs: {}
+  sampling_timesteps: 50  # fixme, numer of diffusion steps, should be increased
+  mask_unet: False
+  num_gru_layers: 1
+  num_mlp_layers: 0
+  return_all_timesteps: False
+  clip_noise: 20.0

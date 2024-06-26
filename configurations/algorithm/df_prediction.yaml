@@ -1,0 +1,18 @@
+defaults:
+  - df_base
+
+z_shape: [1024]
+metadata: ${dataset.metadata}
+lr: 3e-4
+weight_decay: 1e-3
+use_covariates: True
+
+diffusion:
+  network_size: 64
+  objective: pred_v
+
+
+  sampling_timesteps: 50  # fixme, numer of diffusion steps, should be increased
+  num_gru_layers: 4
+  num_mlp_layers: 1
+

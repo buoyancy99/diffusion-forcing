@@ -1,0 +1,48 @@
+# inherites from base_experiment.yaml
+# most of the options have docs at https://lightning.ai/docs/pytorch/stable/common/trainer.html
+
+defaults:
+  - base_experiment
+
+tasks: [training] # tasks to run sequantially, change when your project has multiple stages and you want to run only a subset of them.
+
+training:
+  precision: 16-mixed # set float precision, 16-mixed is faster while 32 is more stable
+  compile: False # whether to compile the model with torch.compile 
+  lr: 0.001 # learning rate
+  batch_size: 16 # training batch size; effective batch size is this number * gpu * nodes iff using distributed training
+  max_epochs: 1000 # set to -1 to train forever
+  max_steps: -1 # set to -1 to train forever, will override max_epochs
+  max_time: null # set to something like "00:12:00:00" to enable
+  data:
+    num_workers: 16 # number of CPU threads for data preprocessing.
+    shuffle: True # whether training data will be shuffled
+  optim:
+    accumulate_grad_batches: 1 # accumulate gradients for n batches before backprop
+    gradient_clip_val: null # clip gradients with norm above this value, set to null to disable
+  checkpointing:
+    # these are arguments to pytorch lightning's callback, `ModelCheckpoint` class
+    every_n_train_steps: 5000 # save a checkpoint every n train steps
+    every_n_epochs: null # mutually exclusive with ``every_n_train_steps`` and ``train_time_interval``
+    train_time_interval: null # in format of "00:12:00:00", mutually exclusive with ``every_n_train_steps`` and ``every_n_epochs``.
+    enable_version_counter: False # If this is ``False``, later checkpoint will be overwrite previous ones.
+
+validation:
+  precision: 16-mixed
+  compile: False # whether to compile the model with torch.compile 
+  batch_size: 16 # validation batch size per GPU; effective batch size is this number * gpu * nodes iff using distributed training
+  val_every_n_step: 2000 # controls how frequent do we run validation, can be float (fraction of epoches) or int (steps) or null (if val_every_n_epoch is set)
+  val_every_n_epoch: null # if you want to do validation every n epoches, requires val_every_n_step to be null.
+  limit_batch: null # if null, run through validation set. Otherwise limit the number of batches to use for validation.
+  data:
+    num_workers: 8 # number of CPU threads for data preprocessing, for validation.
+    shuffle: False # whether validation data will be shuffled
+
+test:
+  precision: 16-mixed
+  compile: False # whether to compile the model with torch.compile 
+  batch_size: 16 # test batch size per GPU; effective batch size is this number * gpu * nodes iff using distributed training
+  limit_batch: null # if null, run through test set. Otherwise limit the number of batches to use for test.
+  data:
+    num_workers: 16 # number of CPU threads for data preprocessing, for test.
+    shuffle: False # whether test data will be shuffled

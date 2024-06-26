@@ -1,0 +1,27 @@
+is_compute_node_offline: False  # many slurm systems only allows internet on login node, not compute node
+
+params:
+  env_name: template  # change this to the name of your conda environment
+  num_gpus: 1
+  num_cpus: 32
+  memory: 32G
+  time: "24:0:0" # Acceptable time formats include "minutes", "minutes:seconds", "hours:minutes:seconds", "days-hours", "days-hours:minutes" and "days-hours:minutes:seconds".
+  email: null
+
+launch_template: |
+  #!/bin/bash
+
+  #SBATCH -J {name}
+  #SBATCH -o {log_dir}/out_%j.out
+  #SBATCH -e {log_dir}/error_%j.err
+  #SBATCH --mail-user={email}
+  #SBATCH --mail-type=FAIL
+  #SBATCH --gres=gpu:{num_gpus}
+  #SBATCH --cpus-per-task={num_cpus}
+  #SBATCH --mem={memory}
+  #SBATCH --time={time}
+
+  source ~/.bashrc
+  conda activate {env_name}
+  cd {project_root}
+  python -m main {python_args}

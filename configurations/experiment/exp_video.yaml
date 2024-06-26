@@ -1,0 +1,22 @@
+defaults:
+  - exp_prediction
+
+tasks: [training]
+training:
+  lr: 2e-4
+  precision: 16-mixed
+  batch_size: 32
+  checkpointing:
+    every_n_train_steps: 10000 # save a checkpoint every n train steps
+  optim:
+    gradient_clip_val: 1.0
+
+validation:
+  val_every_n_step: 5000
+  val_every_n_epoch: null
+  batch_size: 16
+  limit_batch: 1
+
+test:
+  limit_batch: 1
+  batch_size: 16
