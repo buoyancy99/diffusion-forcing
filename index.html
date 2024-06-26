@@ -1,1 +1,554 @@
-todo
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="Diffusion Forcing: Next-token Prediction Meets Full-Sequence Diffusion" />
+    <meta
+      name="keywords"
+      content="Diffusion Forcing, next-token, autoregressive, diffusion, independent noise, Boyuan Chen, video prediction" />
+    <meta property="og:image" content="todo" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+      Diffusion Forcing: Next-token Prediction Meets Full-Sequence Diffusion
+    </title>
+
+    <!--TWITTER TODO-->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Diffusion Forcing: Next-token Prediction Meets Full-Sequence Diffusion" />
+    <meta
+      name="twitter:description"
+      content="Diffusion Forcing: a sequence model that combines next-token prediction and full-sequence diffusion" />
+    <meta name="twitter:image" content="todo" />
+
+    <link
+      href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+      rel="stylesheet" />
+
+    <link rel="stylesheet" href="./static/css/bulma.min.css" />
+    <link rel="stylesheet" href="./static/css/bulma-carousel.min.css" />
+    <link rel="stylesheet" href="./static/css/bulma-slider.min.css" />
+    <link rel="stylesheet" href="./static/css/fontawesome.all.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css" />
+    <link rel="stylesheet" href="./static/css/index.css" />
+    <link rel="icon" href="./static/images/favicon.svg" />
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script defer src="./static/js/fontawesome.all.min.js"></script>
+    <script src="./static/js/bulma-carousel.min.js"></script>
+    <script src="./static/js/bulma-slider.min.js"></script>
+    <script src="./static/js/index.js"></script>
+  </head>
+
+  <body>
+    <section class="hero">
+      <div class="hero-body">
+        <div class="container is-max-desktop">
+          <div class="columns is-centered">
+            <div class="column has-text-centered">
+              <h1 class="title is-1 publication-title">
+                Diffusion Forcing: Next-token Prediction Meets Full-Sequence
+                Diffusion
+              </h1>
+              <div class="is-size-5 publication-authors">
+                <span class="author-block">
+                  <a href="https://boyuan.space/">Boyuan Chen</a
+                  ><sup>1</sup>,</span
+                >
+                <span class="author-block">
+                  <a href="https://www.linkedin.com/in/diego-marti/"
+                    >Diego Martí Monsó</a
+                  ><sup>1*</sup>,</span
+                >
+                <span class="author-block">
+                  <a href="https://yilundu.github.io/">Yilun Du</a
+                  ><sup>1</sup>,</span
+                >
+                <span class="author-block">
+                  <a href="https://msimchowitz.github.io/">Max Simchowitz</a
+                  ><sup>1</sup>,</span
+                >
+                <span class="author-block">
+                  <a href="https://groups.csail.mit.edu/locomotion/russt.html"
+                    >Russ Tedrake</a
+                  ><sup>1</sup>,
+                </span>
+                <span class="author-block">
+                  <a href="https://www.vincentsitzmann.com/">Vincent Sitzmann</a
+                  ><sup>1</sup>,
+                </span>
+              </div>
+              <div>
+                <sup>*</sup> Work done while being a visiting student at MIT.
+              </div>
+
+              <br />
+              <div class="is-size-5 publication-authors">
+                <ul class="affiliation-list">
+                  <li class="affiliation">
+                    <img
+                      src="./static/images/mit.jpg"
+                      alt="MIT Logo"
+                      class="logo" />
+                    <span class="author-block"><sup>1</sup>MIT</span>
+                  </li>
+                </ul>
+              </div>
+              <br />
+              <div class="column has-text-centered">
+                <div class="publication-links">
+                  <!-- PDF Link. -->
+                  <span class="link-block">
+                    <a
+                      href="todo arxiv link"
+                      class="external-link button is-normal is-rounded is-dark">
+                      <span class="icon">
+                        <i class="fas fa-file-pdf"></i>
+                      </span>
+                      <span>Paper</span>
+                    </a>
+                  </span>
+                  <!-- Video Link. -->
+                  <!-- <span class="link-block">
+                    <a
+                      href="https://www.youtube.com/watch?v=_z9b5E_obbE"
+                      class="external-link button is-normal is-rounded is-dark"
+                    >
+                      <span class="icon">
+                        <i class="fab fa-youtube"></i>
+                      </span>
+                      <span>Video</span>
+                    </a>
+                  </span> -->
+                  <span class="link-block">
+                    <a
+                      href="https://boyuan.space/diffusion-forcing"
+                      class="external-link button is-normal is-rounded is-dark">
+                      <span class="icon">
+                        <i class="fas fa-code"></i>
+                      </span>
+                      <span>Code</span>
+                    </a>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container is-max-desktop">
+        <!-- Abstract. -->
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-four-fifths">
+            <h2 class="title is-3">Abstract</h2>
+            <div class="content has-text-justified">
+              This paper presents Diffusion Forcing, a new training paradigm
+              where a diffusion model is trained to denoise a set of tokens with
+              independent per-token noise levels. We apply Diffusion Forcing to
+              sequence generative modeling by training a causal next-token
+              prediction model to generate one or several future tokens without
+              fully diffusing past ones. Our approach is shown to combine the
+              strengths of next-token prediction models, such as variable-length
+              generation, with the strengths of full-sequence diffusion models,
+              such as the ability to guide sampling to desirable trajectories.
+              Our method offers a range of additional capabilities, such as (1)
+              rolling-out sequences of continuous tokens, such as video, with
+              lengths past the training horizon, where baselines diverge and (2)
+              new sampling and guiding schemes that uniquely profit from
+              Diffusion Forcing's variable-horizon and causal architecture, and
+              which lead to marked performance gains in decision-making and
+              planning tasks. In addition to its empirical success, our method
+              is proven to optimize a variational lower bound on the likelihoods
+              of all subsequences of tokens drawn from the true joint
+              distribution.
+              <!--/ Abstract. -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="hr"></div>
+
+    <section class="section">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-full-width has-text-justified">
+            <h2 class="title is-3 has-text-centered">Diffusion Forcing</h2>
+            <div class="content has-text-justified">
+              <p>
+                Diffusion Forcing enjoys key strengths of both next-token
+                autoregressive models and full-sequence diffusion models. By
+                training Diffusion Forcing once, one can flexibly control its
+                behavior at sampling time to simultaneously perform flexible and
+                compositional geneation like next-token models, and perform
+                sequence level guidance like full-sequence diffusion models.
+              </p>
+            </div>
+            <br />
+            <div class="content has-text-centered">
+              <img
+                src="./static/images/abilities.png"
+                class="inline-figure-six"
+                alt="Abilities of teacher forcing, full-sequence diffusion, and Diffusion Forcing." />
+            </div>
+            <div class="content has-text-justified">
+              <p>
+                Diffusion Forcing achieves so by training sequence diffusion but
+                allowing each token to have a different noise level. One can
+                view noises in diffusion as varying levels of masking and
+                establish a unified view: full-sequence diffusion denoise all
+                frames at once with the same noise level, while next-token
+                prediction denoises next frame at a time with zero noise in its
+                past tokens.
+              </p>
+            </div>
+            <br />
+            <div class="content has-text-centered">
+              <img
+                src="./static/images/method.png"
+                class="inline-figure-six"
+                alt="Diffusion Forcing method." />
+            </div>
+            <br />
+            <div class="content has-text-justified">
+              <p>
+                As a result, one can use different noise levels across a
+                sequence at sampling time to achieve flexible behaviors such as
+                stablizing auto-regressive rollout, guidance over long horizon
+                or planning with causal uncertainty.
+              </p>
+            </div>
+            <br />
+            <div class="content has-text-centered">
+              <img
+                src="./static/images/usage.png"
+                class="inline-figure-six"
+                alt="Diffusion Forcing usage." />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="hr"></div>
+
+    <section class="section">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-full-width has-text-justified">
+            <h2 class="title is-3 has-text-centered">Video Prediction</h2>
+            <div class="content has-text-justified">
+              <p>
+                We provide a list of synthesized videos directly generated by
+                models (without VAE / superresolution). The below results are
+                sampled without cherry-picking.
+              </p>
+            </div>
+
+            <div class="publication-video">
+              <video id="dmlab" autoplay muted loop playsinline width="100%">
+                <source
+                  src="static/videos/video_prediction/dmlab.mp4"
+                  type="video/mp4" />
+              </video>
+            </div>
+            <div class="content has-text-justified">
+              <p>
+                Video Prediction by Diffusion Forcing (ours) and baselines in
+                DMLab dataset (0.25x speed). Teacher forcing easily blows up
+                while causal full-sequence diffusion models suffer from serious
+                consistency issues. Diffusion Forcing can achieve stable and and
+                consistent video prediction. PNG visualizations are provided
+                below to reflect the original quality of generated samples.
+              </p>
+            </div>
+
+            <div class="content has-text-centered">
+              <img
+                src="./static/images/dmlab_df_0.png"
+                class="inline-figure-six"
+                height="auto"
+                width="100%" />
+              <hr />
+
+              <img
+                src="./static/images/dmlab_df_1.png"
+                class="inline-figure-six"
+                height="auto"
+                width="100%" />
+
+              <hr />
+            </div>
+
+            <div class="publication-video">
+              <video
+                id="minecraft"
+                autoplay
+                muted
+                loop
+                playsinline
+                width="100%">
+                <source
+                  src="static/videos/video_prediction/minecraft.mp4"
+                  type="video/mp4" />
+              </video>
+            </div>
+            <div class="content has-text-justified">
+              <p>
+                Video Prediction by Diffusion Forcing (ours) and baselines in
+                Minecraft dataset (0.5x speed). Teacher forcing easily blows up
+                while causal full-sequence diffusion models suffer from serious
+                consistency issues. Diffusion Forcing can achieve stable and and
+                consistent video prediction. PNG visualizations are provided
+                below to reflect the original quality of generated samples.
+              </p>
+            </div>
+            <div class="content has-text-centered">
+              <img
+                src="./static/images/minecraft_df_0.png"
+                class="inline-figure-six"
+                height="auto"
+                width="100%" />
+
+              <hr />
+
+              <img
+                src="./static/images/minecraft_df_1.png"
+                class="inline-figure-six"
+                height="auto"
+                width="100%" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="hr"></div>
+
+    <section class="section">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-full-width has-text-justified">
+            <h2 class="title is-3 has-text-centered">
+              Stablizing Infinite Rollout without Sliding Window
+            </h2>
+            <div class="content has-text-justified">
+              <p>
+                In addition, one can rollout much longer videos with our method
+                than the maximum sequence length it's trained on. Remarkly, we
+                can do this without Sliding Window. That is, we rollout RNN
+                without ever resetting the latent z to initial latent z0,
+                showing stablization effect of Diffusion Forcing thanks to its
+                stablization effect. Videos are compressed for loading speed.
+                The results are sampled without cherry-picking.
+              </p>
+            </div>
+            <video id="dmlab_long" autoplay muted loop playsinline width="100%">
+              <source
+                src="static/videos/video_prediction/dmlab_long_compressed.mp4"
+                type="video/mp4" />
+            </video>
+
+            <div class="content has-text-justified">
+              <p style="color: rgb(255, 0, 235)">
+                <b
+                  >Quality of the video is decreased due to mp4 compression of
+                  long videos! Refer to generated images at the bottom of the
+                  website for original quality.</b
+                >
+              </p>
+              <p>
+                Diffusion Forcing (ours) trained on 36 frames can rollout for
+                2000 frames or more on DMLab dataset, without sliding window
+                thanks to its stablization effect. Videos are compressed for
+                loading speed. Original datasset resolution is 64x64.
+              </p>
+            </div>
+            <div class="content has-text-centered">
+              <img
+                src="./static/images/df_dmlab_long_0.png"
+                class="inline-figure-six"
+                height="auto"
+                width="100%" />
+            </div>
+
+            <video
+              id="minecraft_long"
+              autoplay
+              muted
+              loop
+              playsinline
+              width="100%">
+              <source
+                src="static/videos/video_prediction/minecraft_long_compressed.mp4"
+                type="video/mp4" />
+            </video>
+
+            <div class="content has-text-justified">
+              <p style="color: rgb(255, 0, 235)">
+                <b
+                  >Quality of the video is decreased due to mp4 compression of
+                  long videos! We provide PNG visualizations below to reflect
+                  original quality of generated samples longer than training
+                  horizon.
+                </b>
+              </p>
+              <p>
+                Diffusion Forcing (ours) trained on 72 frames rolloutss for 2000
+                frames or more on Minecraft dataset without blowing up, without
+                sliding window. Original datasset resolution is 128x128. In
+                certain scenarios, the agent will get stuck in front of two
+                block high dirt or stone blocks until it switches direction,
+                which is an instrinsics issue of the dataset collection.
+              </p>
+            </div>
+
+            <div class="content has-text-centered">
+              <img
+                src="./static/images/df_minecraft_long_0.png"
+                class="inline-figure-six"
+                height="auto"
+                width="100%" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr />
+
+    <section class="section">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-full-width has-text-justified">
+            <h2 class="title is-3 has-text-centered">Diffusion Planning</h2>
+            <div class="content has-text-justified">
+              <p>
+                Similar to prior works like Diffuser, we can use test-time
+                guidance to make our diffusion sequence a planner. However, we
+                explictly model the causal relationship by defining each token
+                as [a_t, o_{t+1}]. By doing so, we have a belief over action to
+                take and the observation it's leading to, but can also update
+                this belief to posterior estimation when new observation is made
+                after the action is taken.
+              </p>
+            </div>
+            <video
+              id="planning"
+              autoplay
+              controls
+              muted
+              loop
+              playsinline
+              width="100%">
+              <source
+                src="static/videos/planning/planning.mp4"
+                type="video/mp4" />
+            </video>
+            <div class="content has-text-justified">
+              <p>
+                Visualization of the diffusion planning process of Diffusion
+                Forcing as a decision-making framework. To model the causal
+                uncertainty of future, diffusion forcing's plan can have near
+                future at lower noise level while having far future at higher
+                noise level.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-full-width has-text-justified">
+            <h2 class="title is-3 has-text-centered">
+              Long Horizon Imitation Learning
+            </h2>
+
+            <div class="content has-text-justified">
+              <p>
+                Many real world tasks are not markovian and requires long
+                horizon memory to accomplish. In our real robot task, a robot
+                arm is asked to swap the slots of two fruits using a third slot.
+                Since the fruits are input in random slots at the beginning, one
+                cannot determine the next steps from a single observation
+                without knowledge of the initial placement of the fruits.
+              </p>
+            </div>
+            <div class="content has-text-centered">
+              <img
+                src="./static/images/robot.png"
+                class="inline-figure-six"
+                height="auto"
+                width="100%" />
+            </div>
+            <div class="content has-text-justified">
+              <p>
+                We simply remove guidance from the planning experiments and
+                jointly diffuses action-observation sequences to perform
+                feedback control.
+              </p>
+            </div>
+            <div class="publication-video">
+              <video id="robot" autoplay muted loop playsinline width="100%">
+                <source src="static/videos/robot/robot.mp4" type="video/mp4" />
+              </video>
+            </div>
+            <div class="content has-text-justified">
+              <p>
+                The above video shows multiple continuous successes before a
+                failure happens. One can observe that the robot is able to
+                accomplish the task even when the fruit location is randomized
+                by the previous run. On the other hand, we tried SOTA imitation
+                learning techniques Diffusion Forcing but it cannot perform the
+                task due to non-markovianess.
+              </p>
+            </div>
+            <div class="publication-video">
+              <video
+                id="robot_distraction"
+                autoplay
+                muted
+                loop
+                playsinline
+                width="100%">
+                <source
+                  src="static/videos/robot/robot_distraction.mp4"
+                  type="video/mp4" />
+              </video>
+            </div>
+            <div class="content has-text-justified">
+              <p>
+                In addition, diffusion forcing can be prompted to treat incoming
+                observation as noisy ones to be robust to unseen distractions at
+                test time. In the video above, we illustrate our distraction
+                method of randomly throwing a shopping bag into the field of
+                view.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="hr"></div>
+
+    <section class="section" id="BibTeX">
+      <div class="container is-max-desktop content">
+        <h2 class="title has-text-centered">BibTeX</h2>
+        <pre><code>todo</code></pre>
+      </div>
+    </section>
+  </body>
+</html>
