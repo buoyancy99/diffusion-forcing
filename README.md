@@ -1,6 +1,6 @@
 # Diffusion Forcing: Next-token Prediction Meets Full-Sequence Diffusion
 
-#### [[Project Website]](https://boyuan.space/diffusion-forcing) [[Paper]](TODO)
+#### [[Project Website]](https://boyuan.space/diffusion-forcing) [[Paper]](https://arxiv.org/abs/2407.01392)
 
 [Boyuan Chen<sup>1</sup>](https://boyuan.space/), [Diego Martí Monsó<sup>2</sup>](https://www.linkedin.com/in/diego-marti/?originalSubdomain=de), [ Yilun Du<sup>1</sup>](https://yilundu.github.io/), [Max Simchowitz<sup>1</sup>](https://msimchowitz.github.io/), [Russ Tedrake<sup>1</sup>](https://groups.csail.mit.edu/locomotion/russt.html), [Vincent Sitzmann<sup>1</sup>](https://www.vincentsitzmann.com/) <br/>
 <sup>1</sup>MIT <sup>2</sup>Technical University of Munich </br>
@@ -12,7 +12,15 @@ This is the code base for our paper [Diffusion Forcing: Next-token Prediction Me
 Cite
 
 ```
-TODO
+@misc{chen2024diffusionforcingnexttokenprediction,
+      title={Diffusion Forcing: Next-token Prediction Meets Full-Sequence Diffusion}, 
+      author={Boyuan Chen and Diego Marti Monso and Yilun Du and Max Simchowitz and Russ Tedrake and Vincent Sitzmann},
+      year={2024},
+      eprint={2407.01392},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2407.01392}, 
+}
 ```
 
 For questions about code, please create an issue on github. For questions about paper, please reach me at boyuanc@mit.edu
