@@ -1,11 +1,13 @@
 defaults:
-  - exp_prediction
+  - base_pytorch
 
 tasks: [training]
 training:
   lr: 2e-4
   precision: 16-mixed
   batch_size: 32
+  max_epochs: -1
+  max_steps: 100000
   checkpointing:
     every_n_train_steps: 10000 # save a checkpoint every n train steps
   optim:

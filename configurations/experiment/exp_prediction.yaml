@@ -12,17 +12,6 @@ training:
   every_n_train_steps: 10000 # save a checkpoint every n train steps
   optim:
     gradient_clip_val: 10.0
-  early_stopping:
-    monitor: validation/crps_sum
-    patience: 6
-    mode: min
-    verbose: True
-  checkpointing:
-    every_n_train_steps: null
-    monitor: validation/crps_sum
-    save_top_k: 1
-    mode: min
-    verbose: False
 
 validation:
   val_every_n_step: null
