@@ -76,6 +76,8 @@ To let the model rollout longer than it's trained on without sliding window, sim
 
 ### Video Prediction
 
+Make sure you also checkout this 3rd party [3D-unet & transformer implementation](https://github.com/kwsong0113/diffusion-forcing-transformer) if you want a better, modern architecture.
+
 Video prediction requires downloading giant datasets. First, if you downloaded the mini subset following `Try pretrained video model` section, delete the mini subset folders `data/minecraft` and `data/dmlab`. Them just run the following commands: we've coded in python that it will download the dataset for you it doesn't already exist. Due to the slowness of the [source](https://github.com/wilson1yan/teco), this may take a couple days. If you prefer to do it yourself via bash script, please refer to the bash scripts in original [TECO dataset](https://github.com/wilson1yan/teco) and use `dmlab.sh` and `minecraft.sh` in their Dataset section of README, any maybe split bash script into parallel scripts.
 
 Train on TECO DMLab dataset:
@@ -90,8 +92,6 @@ We are training with 8 GPU by default, if you use fewer or smaller batch size, p
 
 After the model is trained to convergence, you can use the model to roll out longer than it's trained on via appending the following command to correspond training command:
 `experiment.tasks=[validation] dataset.n_frames=1000 load={wandb_id_of_training_run}`
-
-Make sure you also checkout [this 3D-unet & transformer implementation](https://github.com/kwsong0113/diffusion-forcing-transformer) if you want a better, modern architecture.
 
 ### Robot Imitation Learning
 
