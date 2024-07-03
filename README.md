@@ -9,8 +9,7 @@ This is the code base for our paper [Diffusion Forcing: Next-token Prediction Me
 
 ![plot](teaser.png)
 
-Cite
-
+**Cite**
 ```
 @misc{chen2024diffusionforcingnexttokenprediction,
       title={Diffusion Forcing: Next-token Prediction Meets Full-Sequence Diffusion}, 
@@ -23,7 +22,8 @@ Cite
 }
 ```
 
-For questions about code, please create an issue on github. For questions about paper, please reach me at boyuanc@mit.edu
+**Transformer Implmentation** We've also implemented a transformer version and have observed much better video results. 
+Stayed tuned about our follow up project! If you cannot wait, it's as easy as using independent noise level to [Lucidrain's video diffusion](https://github.com/lucidrains/video-diffusion-pytorch), and optionally making temporal attention causal.
 
 # Setup
 
@@ -114,9 +114,6 @@ To obtain numbers reported in paper, guidance scale of 8.0 to 12.0 are recommend
 Train model with command:
 `python -m main +name=ts_exchange dataset=ts_exchange algorithm=df_prediction experiment=exp_prediction`
 
-## Transformer Implementation
-
-We've also implemented a transformer version and have observed better results. Stayed tuned about our follow up project!
 
 # Infra instructions
 
