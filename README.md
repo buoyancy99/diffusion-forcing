@@ -10,20 +10,22 @@ This is the code base for our paper [Diffusion Forcing: Next-token Prediction Me
 ![plot](teaser.png)
 
 **Cite**
+
 ```
 @misc{chen2024diffusionforcingnexttokenprediction,
-      title={Diffusion Forcing: Next-token Prediction Meets Full-Sequence Diffusion}, 
+      title={Diffusion Forcing: Next-token Prediction Meets Full-Sequence Diffusion},
       author={Boyuan Chen and Diego Marti Monso and Yilun Du and Max Simchowitz and Russ Tedrake and Vincent Sitzmann},
       year={2024},
       eprint={2407.01392},
       archivePrefix={arXiv},
       primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2407.01392}, 
+      url={https://arxiv.org/abs/2407.01392},
 }
 ```
 
-**Transformer Implmentation** We've also implemented a transformer version and have observed much better video results. 
-~~Stayed tuned about our next project for that!~~  Due to higher-than-expected popularity, we decided to release it shortly! If you cannot wait, it's as easy as using independent noise level to [Lucidrain's video diffusion](https://github.com/lucidrains/video-diffusion-pytorch), and optionally making temporal attention causal.
+### Transformer Implmentation
+
+An amazing MIT undergrad [Kiwhan Song](https://www.linkedin.com/in/kiwhan-song/) working with us reimplemented diffusion forcing with 3D-unet & transformer at [this repo](https://github.com/kwsong0113/diffusion-forcing-transformer). We observe much better results with this improved architecture specialized for video generation, although our paper is exclusively using this repo's non transformer implementation.
 
 # Setup
 
@@ -89,6 +91,8 @@ We are training with 8 GPU by default, if you use fewer or smaller batch size, p
 After the model is trained to convergence, you can use the model to roll out longer than it's trained on via appending the following command to correspond training command:
 `experiment.tasks=[validation] dataset.n_frames=1000 load={wandb_id_of_training_run}`
 
+Make sure you also checkout [this 3D-unet & transformer implementation](https://github.com/kwsong0113/diffusion-forcing-transformer) if you want a better, modern architecture.
+
 ### Robot Imitation Learning
 
 Train the model with command
@@ -113,7 +117,6 @@ To obtain numbers reported in paper, guidance scale of 8.0 to 12.0 are recommend
 
 Train model with command:
 `python -m main +name=ts_exchange dataset=ts_exchange algorithm=df_prediction experiment=exp_prediction`
-
 
 # Infra instructions
 
