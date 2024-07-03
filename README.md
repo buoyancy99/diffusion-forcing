@@ -23,7 +23,7 @@ This is the code base for our paper [Diffusion Forcing: Next-token Prediction Me
 ```
 
 **Transformer Implmentation** We've also implemented a transformer version and have observed much better video results. 
-Stayed tuned about our follow up project! If you cannot wait, it's as easy as using independent noise level to [Lucidrain's video diffusion](https://github.com/lucidrains/video-diffusion-pytorch), and optionally making temporal attention causal.
+~~Stayed tuned about our follow up project! If you cannot wait, it's as easy as using independent noise level to [Lucidrain's video diffusion](https://github.com/lucidrains/video-diffusion-pytorch), and optionally making temporal attention causal.~~ We will release it shortly because people like our paper!
 
 # Setup
 
