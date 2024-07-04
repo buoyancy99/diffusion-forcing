@@ -201,6 +201,15 @@ class DiffusionForcingBase(BasePytorchAlgo):
                     chunk[t], z_chunk = self.transition_model.ddim_sample_step(
                         chunk[t], z_chunk, conditions[len(xs_pred) + t], i
                     )
+
+                    # theoretically, one shall feed new chunk[t] with last z_chunk into transition model again 
+                    # to get the posterior z_chunk, and optionaly, with small noise level k>0 for stablization. 
+                    # However, since z_chunk in the above line already contains info about updated chunk[t] in 
+                    # our simplied math model, we deem it suffice to directly take this z_chunk estimated from 
+                    # last z_chunk and noiser chunk[t]. This saves half of the compute from posterior steps. 
+                    # The effect of the above simplification already contains stablization: we always stablize 
+                    # (ddim_sample_step is never called with noise level k=0 above)
+
             z = z_chunk
             xs_pred += chunk
 
