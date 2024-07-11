@@ -301,12 +301,12 @@
             </div>
 
             <div class="content has-text-centered">
-              <img
+              <!-- <img
                 src="./static/images/dmlab_df_0.png"
                 class="inline-figure-six"
                 height="auto"
                 width="100%" />
-              <hr />
+              <hr /> -->
 
               <img
                 src="./static/images/dmlab_df_1.png"
@@ -341,109 +341,16 @@
               </p>
             </div>
             <div class="content has-text-centered">
-              <img
+              <!-- <img
                 src="./static/images/minecraft_df_0.png"
                 class="inline-figure-six"
                 height="auto"
                 width="100%" />
 
-              <hr />
+              <hr /> -->
 
               <img
                 src="./static/images/minecraft_df_1.png"
-                class="inline-figure-six"
-                height="auto"
-                width="100%" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <div class="hr"></div>
-
-    <section class="section">
-      <div class="container is-max-desktop">
-        <div class="columns is-centered has-text-centered">
-          <div class="column is-full-width has-text-justified">
-            <h2 class="title is-3 has-text-centered">
-              Stablizing Infinite Rollout without Sliding Window
-            </h2>
-            <div class="content has-text-justified">
-              <p>
-                In addition, one can rollout much longer videos with our method
-                than the maximum sequence length it's trained on. Remarkly, we
-                can do this without Sliding Window. That is, we rollout RNN
-                without ever resetting the latent z to initial latent z0,
-                showing stablization effect of Diffusion Forcing thanks to its
-                stablization effect. Videos are compressed for loading speed.
-                The results are sampled without cherry-picking.
-              </p>
-            </div>
-            <video id="dmlab_long" autoplay muted loop playsinline width="100%">
-              <source
-                src="static/videos/video_prediction/dmlab_long_compressed.mp4"
-                type="video/mp4" />
-            </video>
-
-            <div class="content has-text-justified">
-              <p style="color: rgb(255, 0, 235)">
-                <b
-                  >Quality of the video is decreased due to mp4 compression of
-                  long videos! We provide PNG visualizations below to reflect
-                  original quality of generated samples longer than training
-                  horizon.</b
-                >
-              </p>
-              <p>
-                Diffusion Forcing (ours) trained on 36 frames can rollout for
-                2000 frames or more on DMLab dataset, without sliding window
-                thanks to its stablization effect. Videos are compressed for
-                loading speed. Original dataset resolution is 64x64.
-              </p>
-            </div>
-            <div class="content has-text-centered">
-              <img
-                src="./static/images/df_dmlab_long_0.png"
-                class="inline-figure-six"
-                height="auto"
-                width="100%" />
-            </div>
-
-            <video
-              id="minecraft_long"
-              autoplay
-              muted
-              loop
-              playsinline
-              width="100%">
-              <source
-                src="static/videos/video_prediction/minecraft_long_compressed.mp4"
-                type="video/mp4" />
-            </video>
-
-            <div class="content has-text-justified">
-              <p style="color: rgb(255, 0, 235)">
-                <b
-                  >Quality of the video is decreased due to mp4 compression of
-                  long videos! We provide PNG visualizations below to reflect
-                  original quality of generated samples longer than training
-                  horizon.
-                </b>
-              </p>
-              <p>
-                Diffusion Forcing (ours) trained on 72 frames rolloutss for 2000
-                frames or more on Minecraft dataset without blowing up, without
-                sliding window. Original dataset resolution is 128x128. In
-                certain scenarios, the agent will get stuck in front of two
-                block high dirt or stone blocks until it switches direction,
-                which is an instrinsics issue of the dataset collection.
-              </p>
-            </div>
-
-            <div class="content has-text-centered">
-              <img
-                src="./static/images/df_minecraft_long_0.png"
                 class="inline-figure-six"
                 height="auto"
                 width="100%" />
@@ -573,6 +480,183 @@
 
     <div class="hr"></div>
 
+    <section class="section">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-full-width has-text-justified">
+            <h2 class="title is-3 has-text-centered">
+              Stablizing Infinite Rollout without Sliding Window
+            </h2>
+            <div class="content has-text-justified">
+              <p>
+                In addition, one can rollout much longer videos with our method
+                than the maximum sequence length it's trained on. Remarkly, we
+                can do this without Sliding Window. That is, we rollout RNN
+                without ever resetting the latent z to initial latent z0,
+                showing stablization effect of Diffusion Forcing thanks to its
+                stablization effect. Videos are compressed for loading speed.
+                The results are sampled without cherry-picking.
+              </p>
+            </div>
+            <video id="dmlab_long" autoplay muted loop playsinline width="100%">
+              <source
+                src="static/videos/video_prediction/dmlab_long_compressed.mp4"
+                type="video/mp4" />
+            </video>
+
+            <div class="content has-text-justified">
+              <p style="color: rgb(255, 0, 235)">
+                <b
+                  >Quality of the video is decreased due to mp4 compression of
+                  long videos! We provide PNG visualizations below to reflect
+                  original quality of generated samples longer than training
+                  horizon.</b
+                >
+              </p>
+              <p>
+                Diffusion Forcing (ours) trained on 36 frames can rollout for
+                2000 frames or more on DMLab dataset, without sliding window
+                thanks to its stablization effect. Videos are compressed for
+                loading speed. Original dataset resolution is 64x64.
+              </p>
+            </div>
+            <div class="content has-text-centered">
+              <img
+                src="./static/images/df_dmlab_long_0.png"
+                class="inline-figure-six"
+                height="auto"
+                width="100%" />
+            </div>
+
+            <video
+              id="minecraft_long"
+              autoplay
+              muted
+              loop
+              playsinline
+              width="100%">
+              <source
+                src="static/videos/video_prediction/minecraft_long_compressed.mp4"
+                type="video/mp4" />
+            </video>
+
+            <div class="content has-text-justified">
+              <p style="color: rgb(255, 0, 235)">
+                <b
+                  >Quality of the video is decreased due to mp4 compression of
+                  long videos! We provide PNG visualizations below to reflect
+                  original quality of generated samples longer than training
+                  horizon.
+                </b>
+              </p>
+              <p>
+                Diffusion Forcing (ours) trained on 72 frames rolloutss for 2000
+                frames or more on Minecraft dataset without blowing up, without
+                sliding window. Original dataset resolution is 128x128. In
+                certain scenarios, the agent will get stuck in front of two
+                block high dirt or stone blocks until it switches direction,
+                which is an instrinsics issue of the dataset collection.
+              </p>
+            </div>
+
+            <div class="content has-text-centered">
+              <img
+                src="./static/images/df_minecraft_long_0.png"
+                class="inline-figure-six"
+                height="auto"
+                width="100%" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="hr"></div>
+
+    <section class="section">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-full-width has-text-justified">
+            <h2 class="title is-3 has-text-centered">
+              Suggested Directions for Future Work
+            </h2>
+
+            <div class="content has-text-justified">
+              <p>
+                <span class="has-text-weight-bold">Conditioning:</span> When
+                people extend a sequence diffusion model to longer length than
+                it's trained on, conditioing by replacement is often used. In
+                his paper "Video Diffusion Models", Johnathan Ho discusses why
+                this is wrong. Instead, diffusion Forcing tells the model to
+                treat context tokens as clean and future tokens as noisy, which
+                is a more natural way to do conditioning but we haven't explored
+                this in detail.
+              </p>
+              <p>
+                <span class="has-text-weight-bold">Noise as masking:</span>
+                Noise as masking achieves fractional masking of tokens instead
+                of a discrete binary masking. This is general enough to be put
+                in many self-supervised learning methods like MAE. Since adding
+                by noise have interesting interpretations on frequency domain,
+                this could be interesing to explore.
+              </p>
+              <p>
+                <span class="has-text-weight-bold">Compositionality:</span>
+                In our paper, we show compositionality can be achieved by
+                controlling the history length. However, with noise as masking,
+                it's possible for the model to figure out when to ignore
+                uncessary history and only condition on shorter horizon itself.
+              </p>
+              <p>
+                <span class="has-text-weight-bold">Non-causal version:</span>
+                Diffusion Forcing is causal as in this paper because causality
+                is important for decision making. However, the idea of noise as
+                masking is applicable in non-causal models as well. In fact, you
+                can potentially train a non-causal version and make it causal at
+                sampling time! To do so, you can just mask entries that you
+                don't want a prediction to see with pure gaussian noise.
+              </p>
+              <p>
+                <span class="has-text-weight-bold">Alternative Guidance:</span>
+                In our paper's proposed decision making framework, we did
+                guidance on observation to keep the setting closer to diffuser.
+                However, we also proposed a version where we do guidance on
+                learned reward but haven't explored it in the paper.
+              </p>
+              <p>
+                <span class="has-text-weight-bold">Noise scheme:</span>
+                The idea of independent noise level per token is designed to be
+                general, but not necessarily optimal for every task. E.g. It
+                could retain too much redundency if the data is very locally
+                correlated on time axis. This can affect the overall
+                signal-to-noise ratio. It's interesting to explore different
+                noise schemes.
+              </p>
+              <p>
+                <span class="has-text-weight-bold"
+                  >Next few token prediction:</span
+                >
+                Next few token prediction is only used in our planning
+                experiment, and video experiment is still next-token. It didn't
+                work super well in RNN version but we find it to work very well
+                in our transformer version of code. One observation we find is
+                that when using a causal model, doing next few token prediction
+                can lead to inconsistency if the "few" is very big. This doesn't
+                happen as much for non-causal model. There are interesting
+                scientific questions to study why.
+              </p>
+              <p>
+                <span class="has-text-weight-bold">DiT version:</span>
+                We released a 3D Unet Version of Diffusion Forcing after the
+                release. However, Diffusion Forcing shall be applicable to DiT
+                as well, causal or non-causal.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="section" id="BibTeX">
       <div class="container is-max-desktop content">
         <h2 class="title has-text-centered">BibTeX</h2>
@@ -589,5 +673,34 @@
         </code></pre>
       </div>
     </section>
+
+    <footer class="footer">
+      <div class="container">
+        <div class="content has-text-centered">
+          <a class="icon-link" href="https://arxiv.org/abs/2407.01392">
+            <i class="fas fa-file-pdf"></i>
+          </a>
+          <a
+            class="icon-link"
+            href="https://github.com/buoyancy99/diffusion-forcing"
+            class="external-link"
+            disabled>
+            <i class="fab fa-github"></i>
+          </a>
+        </div>
+        <div class="columns is-centered">
+          <div class="column is-8">
+            <div class="content">
+              <p>
+                Website template is modified from
+                <a href="https://github.com/nerfies/nerfies.github.io"
+                  >nerfies</a
+                >
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
   </body>
 </html>
