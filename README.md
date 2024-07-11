@@ -23,11 +23,13 @@ This is the code base for our paper [Diffusion Forcing: Next-token Prediction Me
 }
 ```
 
-### Transformer Implmentation
+### 3D-UNet & Temporal Attention Implmentation
 
-An amazing MIT undergrad [Kiwhan Song](https://www.linkedin.com/in/kiwhan-song/) working with us reimplemented diffusion forcing with 3D-unet & transformer at [this repo](https://github.com/kwsong0113/diffusion-forcing-transformer). We observe much better results with this improved architecture specialized for video generation, although our paper is exclusively using this repo's non transformer implementation.
+An amazing MIT undergrad [Kiwhan Song](https://www.linkedin.com/in/kiwhan-song/) working with us reimplemented diffusion forcing with 3D-unet & temporal attention at [this repo](https://github.com/kwsong0113/diffusion-forcing-transformer). We observe much better results with this improved architecture specialized for video generation, although our paper is exclusively using this repo's non transformer implementation.
 
-# Setup
+# Project Instructions
+
+## Setup
 
 Create conda environment:
 
@@ -52,11 +54,9 @@ Optionally, if you want to do maze planning, install the following complicated d
 pip install -r extra_requirements.txt
 ```
 
-# Project Instructions
-
 ## Quick start with pretrained ckpt
 
-Since dataset is huge, we provide a mini subset and pre-trained checkpoints for you to quickly test out our model! To do so, download mini dataset and checkpoints from [here](https://drive.google.com/file/d/1UU_epzCAT7VLMLyHAsX2LusGCVeowDf8/view?usp=sharing) to project root and extract with ` tar -xzvf  quickstart.tar.gz`. Files shall appear as `data/dmlab`, `data/minecraft`, `outputs/dmlab.ckpt`, `outputs/minecraft.ckpt`.
+Since dataset is huge, we provide a mini subset and pre-trained checkpoints for you to quickly test out our model! To do so, download mini dataset and checkpoints from [here](https://drive.google.com/file/d/1UU_epzCAT7VLMLyHAsX2LusGCVeowDf8/view?usp=sharing) to project root and extract with ` tar -xzvf  quickstart.tar.gz`. Files shall appear as `data/dmlab`, `data/minecraft`, `outputs/dmlab.ckpt`, `outputs/minecraft.ckpt`. Checkpoints for 3D Unet version of diffusion forcing is in the README of that [repo](https://github.com/kwsong0113/diffusion-forcing-transformer).
 
 Then run the following commands and go to the wandb panel to see the results. Our visualization is side by side, with prediction on the left and ground truth on the right. However, ground truth is expected to not align with prediction since the sequence is highly stochastic. Ground truth is provided to provide an idea about quality only.
 
