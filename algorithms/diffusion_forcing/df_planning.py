@@ -308,7 +308,7 @@ class DiffusionForcingPlanning(DiffusionForcingBase):
             for bundle in plan_history[-1][-1][: self.open_loop_horizon]:
                 _, action, _ = self.split_bundle(bundle)
                 action = torch.clamp(action, -1, 1)
-                obs, reward, done, info = envs.step(action.cpu().numpy())
+                obs, reward, done, info = envs.step(np.nan_to_num(action.detach().cpu().numpy()))
                 episode_reward += reward
                 if done.any():
                     terminate = True
