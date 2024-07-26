@@ -103,6 +103,7 @@ To run on the real robot, connect two realsense cameras to the server and run
 The robot will send a plan to a specified port via zeromq, upon receiving a planning request. Robot code is by request.
 
 ### Maze2d Planning
+**We are about to release transformer version of maze planning, with much stronger result and faster speed**, so this version will be deprecated soon.
 
 First, make sure you perform the optinal steps in setup instructions so all planning specific dependencies are installed. Then,
 
