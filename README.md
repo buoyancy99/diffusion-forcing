@@ -111,7 +111,7 @@ Train your model with
 `python -m main +name=planning_medium experiment=exp_planning dataset=maze2d_medium algorithm=df_planning`.
 
 The model will converge within 100k steps. To test planning, append the following to your training command:
-`experiment.tasks=[validation] algorithm.guidance_scale=8.0 load={wandb_id_of_training_run}`.
+`experiment.tasks=[validation] algorithm.guidance_scale=8.0 experiment.validation.precision=32 load={wandb_id_of_training_run}`.
 To obtain numbers reported in paper, guidance scale of 8.0 to 12.0 are recommended. To reproduce visualizations shown on the website, a guidance scale of 0.1-1.0 shall suffice.
 
 ### Timeseries Prediction
