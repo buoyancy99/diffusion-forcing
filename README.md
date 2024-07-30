@@ -25,7 +25,7 @@ This is the code base for our paper [Diffusion Forcing: Next-token Prediction Me
 
 ### 3D-UNet & Temporal Attention Implmentation
 
-An amazing MIT undergrad [Kiwhan Song](https://www.linkedin.com/in/kiwhan-song/) working with us reimplemented diffusion forcing with 3D-unet & temporal attention at [this repo](https://github.com/kwsong0113/diffusion-forcing-transformer). We observe much better results with this improved architecture specialized for video generation, although our paper is exclusively using this repo's non transformer implementation.
+~~An amazing MIT undergrad [Kiwhan Song](https://www.linkedin.com/in/kiwhan-song/) working with us reimplemented diffusion forcing with 3D-unet & temporal attention at [this repo](https://github.com/kwsong0113/diffusion-forcing-transformer). We observe much better results with this improved architecture specialized for video generation, although our paper is exclusively using this repo's non transformer implementation.~~ Checkout the `main` branch of the code.
 
 # Project Instructions
 
@@ -56,7 +56,7 @@ pip install -r extra_requirements.txt
 
 ## Quick start with pretrained ckpt
 
-Since dataset is huge, we provide a mini subset and pre-trained checkpoints for you to quickly test out our model! To do so, download mini dataset and checkpoints from [here](https://drive.google.com/file/d/1UU_epzCAT7VLMLyHAsX2LusGCVeowDf8/view?usp=sharing) to project root and extract with ` tar -xzvf  quickstart.tar.gz`. Files shall appear as `data/dmlab`, `data/minecraft`, `outputs/dmlab.ckpt`, `outputs/minecraft.ckpt`. Checkpoints for 3D Unet version of diffusion forcing is in the README of that [repo](https://github.com/kwsong0113/diffusion-forcing-transformer) (it's better in quality but one has to use sliding window since it's attention).
+Since dataset is huge, we provide a mini subset and pre-trained checkpoints for you to quickly test out our model! To do so, download mini dataset and checkpoints from [here](https://drive.google.com/file/d/1UU_epzCAT7VLMLyHAsX2LusGCVeowDf8/view?usp=sharing) to project root and extract with ` tar -xzvf  quickstart.tar.gz`. Files shall appear as `data/dmlab`, `data/minecraft`, `outputs/dmlab.ckpt`, `outputs/minecraft.ckpt`. Checkpoints for 3D Unet version of diffusion forcing is in the README of ~~that [repo](https://github.com/kwsong0113/diffusion-forcing-transformer) (it's better in quality but one has to use sliding window since it's attention).~~ the `main` branch of the code.
 
 Then run the following commands and go to the wandb panel to see the results. Our visualization is side by side, with prediction on the left and ground truth on the right. However, ground truth is expected to not align with prediction since the sequence is highly stochastic. Ground truth is provided to provide an idea about quality only.
 
@@ -76,7 +76,7 @@ To let the model rollout longer than it's trained on without sliding window, sim
 
 ### Video Prediction
 
-Make sure you also checkout this 3rd party [3D-unet & transformer implementation](https://github.com/kwsong0113/diffusion-forcing-transformer) if you want a better, modern architecture.
+Make sure you also checkout ~~this 3rd party [3D-unet & transformer implementation](https://github.com/kwsong0113/diffusion-forcing-transformer) if you want a better, modern architecture.~~ the `main` branch for temporal attention version of the code for better quality.
 
 Video prediction requires downloading giant datasets. First, if you downloaded the mini subset following `Try pretrained video model` section, delete the mini subset folders `data/minecraft` and `data/dmlab`. Them just run the following commands: we've coded in python that it will download the dataset for you it doesn't already exist. Due to the slowness of the [source](https://github.com/wilson1yan/teco), this may take a couple days. If you prefer to do it yourself via bash script, please refer to the bash scripts in original [TECO dataset](https://github.com/wilson1yan/teco) and use `dmlab.sh` and `minecraft.sh` in their Dataset section of README, any maybe split bash script into parallel scripts.
 
@@ -103,6 +103,7 @@ To run on the real robot, connect two realsense cameras to the server and run
 The robot will send a plan to a specified port via zeromq, upon receiving a planning request. Robot code is by request.
 
 ### Maze2d Planning
+
 **We are about to release transformer version of maze planning, with much stronger result and faster speed**, so this version will be deprecated soon.
 
 First, make sure you perform the optinal steps in setup instructions so all planning specific dependencies are installed. Then,
