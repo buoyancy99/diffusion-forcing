@@ -3,7 +3,7 @@ utils for submitting to clusters, such as slurm
 """
 
 import os
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from datetime import datetime
 from pathlib import Path
 

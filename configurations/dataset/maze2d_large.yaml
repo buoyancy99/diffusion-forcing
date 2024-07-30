@@ -1,9 +1,11 @@
 defaults:
   - base_dataset
 
-env_id: 'maze2d-large-v1'
+env_id: "maze2d-large-v1"
+save_dir: data/maze2d
+dataset_url: http://rail.eecs.berkeley.edu/datasets/offline_rl/maze2d/maze2d-large-sparse-v1.hdf5
 gamma: 1.0
-episode_len: 600
+episode_len: 800
 observation_shape: [4]
 action_dim: 2
 goal_dim: 2

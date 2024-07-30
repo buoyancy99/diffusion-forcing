@@ -3,7 +3,7 @@ from algorithms.diffusion_forcing import DiffusionForcingPlanning
 from .exp_base import BaseLightningExperiment
 
 
-class POMDPExperiment(BaseLightningExperiment):
+class PlanningExperiment(BaseLightningExperiment):
     """
     A Partially Observed Markov Decision Process experiment
     """

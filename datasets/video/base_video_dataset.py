@@ -1,6 +1,7 @@
 from typing import Sequence
 import torch
 import random
+import os
 import numpy as np
 import cv2
 from omegaconf import DictConfig
@@ -27,7 +28,12 @@ class BaseVideoDataset(torch.utils.data.Dataset, ABC):
         self.split = split
         self.resolution = cfg.resolution
         self.external_cond_dim = cfg.external_cond_dim
-        self.n_frames = cfg.n_frames if split == "training" else cfg.n_frames * cfg.validation_multiplier
+        self.n_frames = (
+            cfg.n_frames * cfg.frame_skip
+            if split == "training"
+            else cfg.n_frames * cfg.frame_skip * cfg.validation_multiplier
+        )
+        self.frame_skip = cfg.frame_skip
         self.save_dir = Path(cfg.save_dir)
         self.save_dir.mkdir(exist_ok=True, parents=True)
         self.split_dir = self.save_dir / f"{split}"
@@ -37,9 +43,12 @@ class BaseVideoDataset(torch.utils.data.Dataset, ABC):
         if not self.metadata_path.exists():
             # Build dataset
             print(f"Creating dataset in {self.save_dir}...")
-            self.download_dataset()  # if you downloaded data manually, comment this out
+            self.download_dataset()
             json.dump(
-                {"training": self.get_data_lengths("training"), "validation": self.get_data_lengths("validation")},
+                {
+                    "training": self.get_data_lengths("training"),
+                    "validation": self.get_data_lengths("validation"),
+                },
                 open(self.metadata_path, "w"),
             )
 
@@ -137,11 +146,18 @@ class BaseVideoDataset(torch.utils.data.Dataset, ABC):
         video = self.transform(video)
 
         if self.external_cond_dim:
-            external_cond = np.load(self.condition_dir / f"{video_path.name.replace('.mp4', '.npy')}")
+            external_cond = np.load(
+                # pylint: disable=no-member
+                self.condition_dir
+                / f"{video_path.name.replace('.mp4', '.npy')}"
+            )
             if len(external_cond) < self.n_frames:
                 external_cond = np.pad(external_cond, ((0, pad_len),))
             external_cond = torch.from_numpy(external_cond).float()
-
-            return video, external_cond, nonterminal
+            return (
+                video[:: self.frame_skip],
+                external_cond[:: self.frame_skip],
+                nonterminal[:: self.frame_skip],
+            )
         else:
-            return video, nonterminal
+            return video[:: self.frame_skip], nonterminal[:: self.frame_skip]

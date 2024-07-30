@@ -2,23 +2,30 @@ defaults:
   - base_pytorch
 
 tasks: [training]
+
 training:
-  lr: 2e-4
+  lr: 8e-5
   precision: 16-mixed
-  batch_size: 32
+  batch_size: 8
   max_epochs: -1
-  max_steps: 100000
+  max_steps: 200005
   checkpointing:
-    every_n_train_steps: 10000 # save a checkpoint every n train steps
+    every_n_train_steps: 10000
   optim:
     gradient_clip_val: 1.0
 
 validation:
   val_every_n_step: 5000
   val_every_n_epoch: null
-  batch_size: 16
+  batch_size: 8
   limit_batch: 1
 
 test:
   limit_batch: 1
-  batch_size: 16
+  batch_size: 8
+
+logging:
+  metrics:
+    - fvd
+    # - fid
+    # - lpips

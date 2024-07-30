@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Dict
+from typing import Optional, Union, Literal, List, Dict
 import pathlib
 import os
 
@@ -10,12 +10,14 @@ from lightning.pytorch.strategies.ddp import DDPStrategy
 import lightning.pytorch as pl
 from lightning.pytorch.loggers.wandb import WandbLogger
 from lightning.pytorch.utilities.types import TRAIN_DATALOADERS
-from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint, EarlyStopping
+from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 
 from omegaconf import DictConfig
 
 from utils.print_utils import cyan
 from utils.distributed_utils import is_rank_zero
+
+torch.set_float32_matmul_precision("high")
 
 
 class BaseExperiment(ABC):
@@ -154,7 +156,6 @@ class BaseLightningExperiment(BaseExperiment):
         """
         if not self.algo:
             self.algo = self._build_algo()
-
         if self.cfg.training.compile:
             self.algo = torch.compile(self.algo)
 
@@ -162,19 +163,18 @@ class BaseLightningExperiment(BaseExperiment):
         if self.logger:
             callbacks.append(LearningRateMonitor("step", True))
         if "checkpointing" in self.cfg.training:
-            self.checkpoint_callback = ModelCheckpoint(
-                pathlib.Path(hydra.core.hydra_config.HydraConfig.get()["runtime"]["output_dir"]) / "checkpoints",
-                **self.cfg.training.checkpointing,
+            callbacks.append(
+                ModelCheckpoint(
+                    pathlib.Path(hydra.core.hydra_config.HydraConfig.get()["runtime"]["output_dir"]) / "checkpoints",
+                    **self.cfg.training.checkpointing,
+                )
             )
-            callbacks.append(self.checkpoint_callback)
-        if "early_stopping" in self.cfg.training:
-            self.early_stopping_callback = EarlyStopping(**self.cfg.training.early_stopping)
-            callbacks.append(self.early_stopping_callback)
 
         trainer = pl.Trainer(
             accelerator="auto",
-            logger=self.logger,
+            logger=self.logger if self.logger else False,
             devices="auto",
+            num_nodes=self.cfg.num_nodes,
             strategy=DDPStrategy(find_unused_parameters=False) if torch.cuda.device_count() > 1 else "auto",
             callbacks=callbacks,
             gradient_clip_val=self.cfg.training.optim.gradient_clip_val,
@@ -184,12 +184,14 @@ class BaseLightningExperiment(BaseExperiment):
             accumulate_grad_batches=self.cfg.training.optim.accumulate_grad_batches,
             precision=self.cfg.training.precision,
             detect_anomaly=False,  # self.cfg.debug,
-            profiler="simple" if self.cfg.debug else None,
             num_sanity_val_steps=int(self.cfg.debug),
             max_epochs=self.cfg.training.max_epochs,
             max_steps=self.cfg.training.max_steps,
             max_time=self.cfg.training.max_time,
         )
+
+        # if self.debug:
+        #     self.logger.watch(self.algo, log="all")
 
         trainer.fit(
             self.algo,
@@ -198,16 +200,12 @@ class BaseLightningExperiment(BaseExperiment):
             ckpt_path=self.ckpt_path,
         )
 
-        if "early_stopping" in self.cfg.training:
-            self.best_model_path = self.checkpoint_callback.best_model_path
-
     def validation(self) -> None:
         """
         All validation happens here
         """
         if not self.algo:
             self.algo = self._build_algo()
-
         if self.cfg.validation.compile:
             self.algo = torch.compile(self.algo)
 
@@ -217,13 +215,17 @@ class BaseLightningExperiment(BaseExperiment):
             accelerator="auto",
             logger=self.logger,
             devices="auto",
+            num_nodes=self.cfg.num_nodes,
             strategy=DDPStrategy(find_unused_parameters=False) if torch.cuda.device_count() > 1 else "auto",
             callbacks=callbacks,
             limit_val_batches=self.cfg.validation.limit_batch,
             precision=self.cfg.validation.precision,
             detect_anomaly=False,  # self.cfg.debug,
-            inference_mode=False,
+            inference_mode=self.cfg.validation.inference_mode,
         )
+
+        # if self.debug:
+        #     self.logger.watch(self.algo, log="all")
 
         trainer.validate(
             self.algo,
@@ -246,6 +248,7 @@ class BaseLightningExperiment(BaseExperiment):
             accelerator="auto",
             logger=self.logger,
             devices="auto",
+            num_nodes=self.cfg.num_nodes,
             strategy=DDPStrategy(find_unused_parameters=False) if torch.cuda.device_count() > 1 else "auto",
             callbacks=callbacks,
             limit_test_batches=self.cfg.test.limit_batch,
@@ -258,7 +261,7 @@ class BaseLightningExperiment(BaseExperiment):
         trainer.test(
             self.algo,
             dataloaders=self._build_test_loader(),
-            ckpt_path=self.best_model_path if hasattr(self, "best_model_path") else self.ckpt_path,
+            ckpt_path=self.ckpt_path,
         )
 
     def _build_dataset(self, split: str) -> Optional[torch.utils.data.Dataset]:

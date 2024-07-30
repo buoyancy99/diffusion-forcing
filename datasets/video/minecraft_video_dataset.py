@@ -23,7 +23,19 @@ class MinecraftVideoDataset(BaseVideoDataset):
     def download_dataset(self) -> Sequence[int]:
         from internetarchive import download
 
-        part_suffixes = ["aa", "ab", "ac", "ad", "ae", "af", "ag", "ah", "ai", "aj", "ak"]
+        part_suffixes = [
+            "aa",
+            "ab",
+            "ac",
+            "ad",
+            "ae",
+            "af",
+            "ag",
+            "ah",
+            "ai",
+            "aj",
+            "ak",
+        ]
         for part_suffix in part_suffixes:
             identifier = f"minecraft_marsh_dataset_{part_suffix}"
             file_name = f"minecraft.tar.part{part_suffix}"
@@ -82,7 +94,11 @@ class MinecraftVideoDataset(BaseVideoDataset):
         video = torch.from_numpy(video / 255.0).float().permute(0, 3, 1, 2).contiguous()
         video = self.transform(video)
 
-        return video, actions, nonterminal
+        return (
+            video[:: self.frame_skip],
+            actions[:: self.frame_skip],
+            nonterminal[:: self.frame_skip],
+        )
 
 
 if __name__ == "__main__":

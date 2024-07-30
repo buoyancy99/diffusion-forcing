@@ -1,13 +1,11 @@
-"""
-Code copied from https://github.com/lucidrains/denoising-diffusion-pytorch
-"""
-
 import math
 import torch
+from torch import nn
+from einops import rearrange, parse_shape
 
 
-def exists(x):
-    return x is not None
+def exists(val):
+    return val is not None
 
 
 def default(val, d):
@@ -16,60 +14,10 @@ def default(val, d):
     return d() if callable(d) else d
 
 
-def identity(t, *args, **kwargs):
-    return t
-
-
-def cycle(dl):
-    while True:
-        for data in dl:
-            yield data
-
-
-def divisible_by(numer, denom):
-    return (numer % denom) == 0
-
-
-def has_int_squareroot(num):
-    return (math.sqrt(num) ** 2) == num
-
-
-def num_to_groups(num, divisor):
-    groups = num // divisor
-    remainder = num % divisor
-    arr = [divisor] * groups
-    if remainder > 0:
-        arr.append(remainder)
-    return arr
-
-
-def convert_image_to_fn(img_type, image):
-    if image.mode != img_type:
-        return image.convert(img_type)
-    return image
-
-
-# normalization functions
-
-
-def normalize_to_neg_one_to_one(img):
-    return img * 2 - 1
-
-
-def unnormalize_to_zero_to_one(t):
-    return (t + 1) * 0.5
-
-
-def cast_tuple(t, length=1):
-    if isinstance(t, tuple):
-        return t
-    return (t,) * length
-
-
 def extract(a, t, x_shape):
-    b, *_ = t.shape
-    out = a.gather(-1, t)
-    return out.reshape(b, *((1,) * (len(x_shape) - 1)))
+    f, b = t.shape
+    out = a[t]
+    return out.reshape(f, b, *((1,) * (len(x_shape) - 2)))
 
 
 def linear_beta_schedule(timesteps):
@@ -111,20 +59,28 @@ def sigmoid_beta_schedule(timesteps, start=-3, end=3, tau=1, clamp_min=1e-5):
     return torch.clip(betas, 0, 0.999)
 
 
-def gae_return(imged_reward, value_pred, bootstrap, discount=0.99, lambda_=0.95):
-    # Setting lambda=1 gives a discounted Monte Carlo return.
-    # Setting lambda=0 gives a fixed 1-step return.
-    next_values = torch.cat([value_pred[1:], bootstrap[None]], 0)
-    discount_tensor = discount * torch.ones_like(imged_reward)  # pcont
-    inputs = imged_reward + discount_tensor * next_values * (1 - lambda_)
-    last = bootstrap
-    indices = reversed(range(len(inputs)))
-    outputs = []
-    for index in indices:
-        inp, disc = inputs[index], discount_tensor[index]
-        last = inp + disc * lambda_ * last
-        outputs.append(last)
-    outputs = list(reversed(outputs))
-    outputs = torch.stack(outputs, 0)
-    returns = outputs
-    return returns
+class EinopsWrapper(nn.Module):
+    def __init__(self, from_shape: str, to_shape: str, module: nn.Module):
+        super().__init__()
+        self.module = module
+        self.from_shape = from_shape
+        self.to_shape = to_shape
+
+    def forward(self, x: torch.Tensor, *args, **kwargs):
+        axes_lengths = parse_shape(x, pattern=self.from_shape)
+        x = rearrange(x, f"{self.from_shape} -> {self.to_shape}")
+        x = self.module(x, *args, **kwargs)
+        x = rearrange(x, f"{self.to_shape} -> {self.from_shape}", **axes_lengths)
+        return x
+
+
+def get_einops_wrapped_module(module, from_shape: str, to_shape: str):
+    class WrappedModule(nn.Module):
+        def __init__(self, *args, **kwargs):
+            super().__init__()
+            self.wrapper = EinopsWrapper(from_shape, to_shape, module(*args, **kwargs))
+
+        def forward(self, x: torch.Tensor, *args, **kwargs):
+            return self.wrapper(x, *args, **kwargs)
+
+    return WrappedModule

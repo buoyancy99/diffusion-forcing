@@ -1,11 +1,11 @@
-import torch
 from typing import Sequence
-import io
-import numpy as np
 import tarfile
+import io
+import torch
+import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
-
+from internetarchive import download
 from .base_video_dataset import BaseVideoDataset
 
 
@@ -20,7 +20,6 @@ class DmlabVideoDataset(BaseVideoDataset):
         super().__init__(cfg, split)
 
     def download_dataset(self) -> Sequence[int]:
-        from internetarchive import download
 
         part_suffixes = ["aa", "ab", "ac"]
         for part_suffix in part_suffixes:
@@ -75,8 +74,11 @@ class DmlabVideoDataset(BaseVideoDataset):
 
         video = torch.from_numpy(video / 255.0).float().permute(0, 3, 1, 2).contiguous()
         video = self.transform(video)
-
-        return video, actions, nonterminal
+        return (
+            video[:: self.frame_skip],
+            actions[:: self.frame_skip],
+            nonterminal[:: self.frame_skip],
+        )
 
 
 if __name__ == "__main__":

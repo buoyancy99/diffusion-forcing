@@ -1,12 +1,14 @@
 defaults:
-  - base_timeseries
+  - base_dataset
 
+metadata: "data/${dataset.name}/metadata.json"
+data_mean: "data/${dataset.name}/data_mean.npy"
+data_std: "data/${dataset.name}/data_std.npy"
 save_dir: ???
-
 n_frames: 32
 context_length: 4
 resolution: 128
 observation_shape: [3, "${dataset.resolution}", "${dataset.resolution}"]
 external_cond_dim: 0
 validation_multiplier: 1
-
+frame_skip: 1

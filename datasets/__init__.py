@@ -1,4 +1,3 @@
-from .timeseries import GluontsDataset
+from .video import DmlabVideoDataset
+from .video import MinecraftVideoDataset
 from .offline_rl import Maze2dOfflineRLDataset
-from .video import MinecraftVideoDataset, DmlabVideoDataset
-from .robot import RobotDataset

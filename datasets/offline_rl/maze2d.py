@@ -1,20 +1,46 @@
+from pathlib import Path
 import numpy as np
 import torch
 from omegaconf import DictConfig
 import matplotlib.pyplot as plt
+import h5py
+from tqdm import tqdm
+import urllib
+import os
+
+
+def get_keys(h5file):
+    keys = []
+
+    def visitor(name, item):
+        if isinstance(item, h5py.Dataset):
+            keys.append(name)
+
+    h5file.visititems(visitor)
+    return keys
+
+
+def download_dataset_from_url(save_dir, dataset_url):
+    _, dataset_name = os.path.split(dataset_url)
+    dataset_filepath = os.path.join(save_dir, dataset_name)
+    if not os.path.exists(dataset_filepath):
+        print("Downloading dataset:", dataset_url, "to", dataset_filepath)
+        urllib.request.urlretrieve(dataset_url, dataset_filepath)
+    if not os.path.exists(dataset_filepath):
+        raise IOError("Failed to download dataset from %s" % dataset_url)
+    return dataset_filepath
 
 
 class Maze2dOfflineRLDataset(torch.utils.data.Dataset):
     def __init__(self, cfg: DictConfig, split: str = "training"):
         super().__init__()
         self.cfg = cfg
-
-        import gym
-        import d4rl
-
-        self.dataset = gym.make(cfg.env_id).get_dataset()
+        self.save_dir = cfg.save_dir
+        self.dataset_url = cfg.dataset_url
+        Path(self.save_dir).mkdir(parents=True, exist_ok=True)
+        self.dataset = self.get_dataset()
         self.gamma = cfg.gamma
-        self.n_frames = cfg.episode_len
+        self.n_frames = cfg.episode_len + 1
         self.total_steps = len(self.dataset["observations"])
         self.dataset["values"] = self.compute_value(self.dataset["rewards"]) * (1 - self.gamma) * 4 - 1
 
@@ -41,6 +67,26 @@ class Maze2dOfflineRLDataset(torch.utils.data.Dataset):
         goal = torch.zeros((self.n_frames, 0))
 
         return observation, action, reward, nonterminal
+
+    def get_dataset(self):
+        h5path = download_dataset_from_url(self.save_dir, self.dataset_url)
+        data_dict = {}
+        with h5py.File(h5path, "r") as dataset_file:
+            for k in get_keys(dataset_file):
+                try:  # first try loading as an array
+                    data_dict[k] = dataset_file[k][:]
+                except ValueError as e:  # try loading as a scalar
+                    data_dict[k] = dataset_file[k][()]
+
+        N_samples = data_dict["observations"].shape[0]
+
+        if data_dict["rewards"].shape == (N_samples, 1):
+            data_dict["rewards"] = data_dict["rewards"][:, 0]
+
+        if data_dict["terminals"].shape == (N_samples, 1):
+            data_dict["terminals"] = data_dict["terminals"][:, 0]
+
+        return data_dict
 
 
 if __name__ == "__main__":

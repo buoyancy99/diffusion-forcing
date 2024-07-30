@@ -1,115 +1,371 @@
-from typing import Optional
+from typing import Optional, Any
+from omegaconf import DictConfig
 import numpy as np
-
+from random import random
 import torch
 import torch.nn as nn
-from omegaconf import DictConfig
+from einops import rearrange, repeat, reduce
 import wandb
 from PIL import Image
 
-from einops import rearrange
-
 from .df_base import DiffusionForcingBase
-from .models.diffusion_transition import DiffusionTransitionModel
-from utils.logging_utils import make_convergence_animation, make_mpc_animation, make_trajectory_images
+from utils.logging_utils import (
+    make_trajectory_images,
+    get_random_start_goal,
+)
 
 
 class DiffusionForcingPlanning(DiffusionForcingBase):
     def __init__(self, cfg: DictConfig):
-        import d4rl
-        import gym
-
         self.env_id = cfg.env_id
-        env = gym.make(self.env_id)
-        self.action_dim = env.action_space.shape[0]
-        self.observation_dim = env.observation_space.shape[0]
+        self.action_dim = len(cfg.action_mean)
+        self.observation_dim = len(cfg.observation_mean)
         self.use_reward = cfg.use_reward
         self.unstacked_dim = self.observation_dim + self.action_dim + int(self.use_reward)
         cfg.x_shape = (self.unstacked_dim,)
         self.episode_len = cfg.episode_len
-        self.guidance_scale = cfg.guidance_scale
-        self.ddim_repeats = cfg.ddim_repeats
+        self.n_tokens = self.episode_len // cfg.frame_stack + 1
         self.gamma = cfg.gamma
-        self.repeat_observation = cfg.repeat_observation
         self.reward_mean = cfg.reward_mean
         self.reward_std = cfg.reward_std
-        self.observation_mean = cfg.observation_mean
-        self.observation_std = cfg.observation_std
-        self.action_mean = cfg.action_mean
-        self.action_std = cfg.action_std
+        self.observation_mean = np.array(cfg.observation_mean[: self.observation_dim])
+        self.observation_std = np.array(cfg.observation_std[: self.observation_dim])
+        self.action_mean = np.array(cfg.action_mean[: self.action_dim])
+        self.action_std = np.array(cfg.action_std[: self.action_dim])
         self.open_loop_horizon = cfg.open_loop_horizon
         self.plot_end_points = cfg.plot_start_goal
-
+        self.p = cfg.p
+        self.a = cfg.a
+        self.v = cfg.v
+        self.observation_std = np.concatenate([self.observation_std[:2] * self.p, self.observation_std[2:] * self.v])
+        self.action_std = self.action_std * self.a
+        self.padding_mode = cfg.padding_mode
         super().__init__(cfg)
-        if self.open_loop_horizon % self.frame_stack != 0:
-            raise ValueError("open_loop_horizon must be divisible by frame_stack")
-        if self.chunk_size % self.frame_stack != 0:
-            raise ValueError("chunk_size must be divisible by frame_stack")
-        if self.context_frames % self.frame_stack != 0 and self.context_frames >= 0:
-            raise ValueError("context_frames must be divisible by frame_stack")
 
     def _build_model(self):
-        self.transition_model = DiffusionTransitionModel(
-            self.x_stacked_shape, self.z_shape, self.external_cond_dim, self.cfg.diffusion
-        )
-        self.init_encoder = nn.Sequential(
-            nn.Linear(self.observation_dim, 128),
-            nn.ELU(),
-            nn.Linear(128, 128),
-            nn.ELU(),
-            nn.Linear(128, self.z_shape[0]),
-        )
-        mean = list(self.observation_mean) * self.repeat_observation + list(self.action_mean)
-        std = list(self.observation_std) * self.repeat_observation + list(self.action_std)
+        mean = list(self.observation_mean) + list(self.action_mean)
+        std = list(self.observation_std) + list(self.action_std)
         if self.use_reward:
             mean += [self.reward_mean]
             std += [self.reward_std]
-        self.register_data_mean_std(mean, std)
-
-    def configure_optimizers(self):
-        transition_params = tuple(self.transition_model.parameters()) + tuple(self.init_encoder.parameters())
-        optimizer_dynamics = torch.optim.AdamW(
-            transition_params, lr=self.cfg.lr, weight_decay=self.cfg.weight_decay, betas=self.cfg.optimizer_beta
-        )
-        return optimizer_dynamics
-
-    def reweigh_loss(self, loss, weight=None):
-        loss *= 10.0  # somehow is this very important for maze2d.
-        return super().reweigh_loss(loss, weight)
+        self.cfg.data_mean = np.array(mean).tolist()
+        self.cfg.data_std = np.array(std).tolist()
+        super()._build_model()
 
     def _preprocess_batch(self, batch):
         observations, actions, rewards, nonterminals = batch
         batch_size, n_frames = observations.shape[:2]
 
-        if n_frames % self.frame_stack != 0:
-            raise ValueError("Number of frames must be divisible by frame stack size")
-        if self.context_frames % self.frame_stack != 0:
-            raise ValueError("Number of context frames must be divisible by frame stack size")
+        observations = observations[..., : self.observation_dim]
+        actions = actions[..., : self.action_dim]
 
+        if (n_frames - 1) % self.frame_stack != 0:
+            raise ValueError("Number of frames - 1 must be divisible by frame stack size")
+
+        nonterminals = torch.cat([torch.ones_like(nonterminals[:, : self.frame_stack]), nonterminals[:, :-1]], dim=1)
         nonterminals = nonterminals.bool().permute(1, 0)
         masks = torch.cumprod(nonterminals, dim=0).contiguous()
 
-        rewards = rearrange(rewards, "b (t fs) -> t b fs 1", fs=self.frame_stack).contiguous()
-
-        init_obs = observations[:, 0]
-        init_z = self.init_encoder(self.split_bundle(self._normalize_x(self.make_bundle(init_obs)))[0])
-        observations = observations[:, 1:]
-        pad = torch.zeros_like(observations[:, -1:])
-        observations = torch.cat([observations, pad], 1)
-        observations = rearrange(observations, "b (t fs) ... -> t b fs ...", fs=self.frame_stack)
-
-        actions = rearrange(actions, "b (t fs) ... -> t b fs ...", fs=self.frame_stack)
+        rewards = rewards[:, :-1, None]
+        actions = actions[:, :-1]
+        init_obs, observations = torch.split(observations, [1, n_frames - 1], dim=1)
+        bundles = self._normalize_x(self.make_bundle(observations, actions, rewards))  # (b t c)
+        init_bundle = self._normalize_x(self.make_bundle(init_obs[:, 0]))  # (b c)
+        init_bundle[:, self.observation_dim :] = 0  # zero out actions and rewards after normalization
+        init_bundle = self.pad_init(init_bundle, batch_first=True)  # (b t c)
+        bundles = torch.cat([init_bundle, bundles], dim=1)
+        bundles = rearrange(bundles, "b (t fs) ... -> t b fs ...", fs=self.frame_stack)
+        bundles = bundles.flatten(2, 3).contiguous()
 
         if self.cfg.external_cond_dim:
             raise ValueError("external_cond_dim not needed in planning")
-        conditions = [None for _ in range(n_frames // self.frame_stack)]
+        conditions = None
 
-        bundles = self.make_bundle(observations, actions, rewards)
-        bundles = self._normalize_x(bundles)
-        bundles = bundles.flatten(2, 3)
-        bundles = bundles.contiguous()
+        return bundles, conditions, masks
 
-        return bundles, conditions, masks, init_z
+    def training_step(self, batch, batch_idx):
+        xs, conditions, masks = self._preprocess_batch(batch)
+
+        n_tokens, batch_size = xs.shape[:2]
+
+        weights = masks.float()
+        if not self.causal:
+            # manually mask out entries to train for varying length
+            random_terminal = torch.randint(2, n_tokens + 1, (batch_size,), device=self.device)
+            random_terminal = nn.functional.one_hot(random_terminal, n_tokens + 1)[:, :n_tokens].bool()
+            random_terminal = repeat(random_terminal, "b t -> (t fs) b", fs=self.frame_stack)
+            nonterminal_causal = torch.cumprod(~random_terminal, dim=0)
+            weights *= torch.clip(nonterminal_causal.float(), min=0.05)
+            masks *= nonterminal_causal.bool()
+
+        xs_pred, loss = self.diffusion_model(xs, conditions, noise_levels=self._generate_noise_levels(xs, masks=masks))
+
+        loss = self.reweight_loss(loss, weights)
+
+        if batch_idx % 100 == 0:
+            self.log("training/loss", loss, on_step=True, on_epoch=False, sync_dist=True)
+
+        xs = self._unstack_and_unnormalize(xs)[self.frame_stack - 1 :]
+        xs_pred = self._unstack_and_unnormalize(xs_pred)[self.frame_stack - 1 :]
+
+        # Visualization, including masked out entries
+        if self.global_step % 10000 == 0:
+            o, a, r = self.split_bundle(xs_pred)
+            trajectory = o.detach().cpu().numpy()[:-1, :8]  # last observation is dummy, sample 8
+            images = make_trajectory_images(self.env_id, trajectory, trajectory.shape[1], None, None, False)
+            for i, img in enumerate(images):
+                self.log_image(
+                    f"training_visualization/sample_{i}",
+                    Image.fromarray(img),
+                )
+
+        output_dict = {
+            "loss": loss,
+            "xs_pred": xs_pred,
+            "xs": xs,
+        }
+
+        return output_dict
+
+    @torch.no_grad()
+    def validation_step(self, batch, batch_idx, namespace="validation"):
+        xs, conditions, _ = self._preprocess_batch(batch)
+        _, batch_size, *_ = xs.shape
+        if self.guidance_scale == 0:
+            namespace += "_no_guidance"
+        horizon = self.episode_len
+        if self.action_dim != 2:
+            self.eval_planning(
+                batch_size, conditions, horizon, namespace + str(horizon)
+            )  # can run planning without environment installation
+        self.interact(batch_size, conditions, namespace)  # interact if environment is installation
+
+    def plan(self, start: torch.Tensor, goal: torch.Tensor, horizon: int, conditions: Optional[Any] = None):
+        # start and goal are numpy arrays of shape (b, obs_dim)
+        # start and goal are assumed to be normalized
+        # returns plan history of (m, t, b, c), where the last dim of m is the fully diffused plan
+
+        batch_size = start.shape[0]
+
+        start = self.make_bundle(start)
+        goal = self.make_bundle(goal)
+
+        def goal_guidance(x):
+            # x is a tensor of shape [t b (fs c)]
+            pred = rearrange(x, "t b (fs c) -> (t fs) b c", fs=self.frame_stack)
+            h_padded = pred.shape[0] - self.frame_stack  # include padding when horizon % frame_stack != 0
+
+            if not self.use_reward:
+                # sparse / no reward setting, guide with goal like diffuser
+                target = torch.stack([start] * self.frame_stack + [goal] * (h_padded))
+                dist = nn.functional.mse_loss(pred, target, reduction="none")  # (t fs) b c
+
+                # guidance weight for observation and action
+                weight = np.array(
+                    [20] * (self.frame_stack)  # conditoning (aka reconstruction guidance)
+                    + [1 for _ in range(horizon)]  # try to reach the goal at any horizon
+                    + [0] * (h_padded - horizon)  # don't guide padded entries due to horizon % frame_stack != 0
+                )
+                weight = torch.from_numpy(weight).float().to(self.device)
+                dist_o, dist_a, _ = self.split_bundle(dist)  # guidance observation and action with separate weights
+                dist_a = torch.sum(dist_a, -1, keepdim=True).sqrt()
+                dist_o = reduce(dist_o, "t b (n c) -> t b n", "sum", n=self.observation_dim // 2).sqrt()
+                dist_o = torch.tanh(dist_o / 2)  # similar to the "squashed gaussian" in RL, squash to (-1, 1)
+                dist = torch.cat([dist_o, dist_a], -1)
+                weight = repeat(weight, "t -> t c", c=dist.shape[-1])
+                weight[self.frame_stack :, 1:] = 8
+                weight[: self.frame_stack, 1:] = 2
+                weight = torch.ones_like(dist) * weight[:, None]
+
+                episode_return = -(dist * weight).mean() * 1000
+            else:
+                # dense reward seeting, guide with reward
+                raise NotImplementedError("reward guidance not officially supported yet, although implemented")
+                rewards = pred[:, :, -1]
+                weight = np.array([10] * self.frame_stack + [0.997**j for j in range(h)] + [0] * h_padded)
+                weight = torch.from_numpy(weight).float().to(self.device)
+                episode_return = rewards * weight[:, None]
+
+            return self.guidance_scale * episode_return
+
+        guidance_fn = goal_guidance if self.guidance_scale else None
+
+        plan_tokens = np.ceil(horizon / self.frame_stack).astype(int)
+        pad_tokens = 0 if self.causal else self.n_tokens - plan_tokens - 1
+        scheduling_matrix = self._generate_scheduling_matrix(plan_tokens)
+        chunk = torch.randn((plan_tokens, batch_size, *self.x_stacked_shape), device=self.device)
+        chunk = torch.clamp(chunk, -self.cfg.diffusion.clip_noise, self.cfg.diffusion.clip_noise)
+        pad = torch.zeros((pad_tokens, batch_size, *self.x_stacked_shape), device=self.device)
+        init_token = rearrange(self.pad_init(start), "fs b c -> 1 b (fs c)")
+        plan = torch.cat([init_token, chunk, pad], 0)
+
+        plan_hist = [plan.detach()[: self.n_tokens - pad_tokens]]
+        stabilization = 0
+        for m in range(scheduling_matrix.shape[0] - 1):
+            from_noise_levels = np.concatenate(
+                [
+                    np.array((stabilization,), dtype=np.int64),
+                    scheduling_matrix[m],
+                    np.array([self.sampling_timesteps] * pad_tokens, dtype=np.int64),
+                ]
+            )
+            to_noise_levels = np.concatenate(
+                [
+                    np.array((stabilization,), dtype=np.int64),
+                    scheduling_matrix[m + 1],
+                    np.array([self.sampling_timesteps] * pad_tokens, dtype=np.int64),
+                ]
+            )
+            from_noise_levels = torch.from_numpy(from_noise_levels).to(self.device)
+            to_noise_levels = torch.from_numpy(to_noise_levels).to(self.device)
+            from_noise_levels = repeat(from_noise_levels, "t -> t b", b=batch_size)
+            to_noise_levels = repeat(to_noise_levels, "t -> t b", b=batch_size)
+            plan[1 : self.n_tokens - pad_tokens] = self.diffusion_model.sample_step(
+                plan, conditions, from_noise_levels, to_noise_levels, guidance_fn=guidance_fn
+            )[1 : self.n_tokens - pad_tokens]
+            plan_hist.append(plan.detach()[: self.n_tokens - pad_tokens])
+
+        plan_hist = torch.stack(plan_hist)
+        plan_hist = rearrange(plan_hist, "m t b (fs c) -> m (t fs) b c", fs=self.frame_stack)
+        plan_hist = plan_hist[:, self.frame_stack : self.frame_stack + horizon]
+
+        return plan_hist
+
+    def eval_planning(self, batch_size: int, conditions=None, horizon=None, namespace="validation"):
+        start, goal = get_random_start_goal(self.env_id, batch_size)
+
+        start_normalized = torch.from_numpy(start).float().to(self.device)
+        start_normalized = torch.cat([start_normalized, torch.zeros_like(start_normalized)], -1)
+        start_normalized = start_normalized[:, : self.observation_dim]
+        start_normalized = self.split_bundle(self._normalize_x(self.make_bundle(start_normalized)))[0]
+
+        goal_normalized = torch.from_numpy(goal).float().to(self.device)
+        goal_normalized = torch.cat([goal_normalized, torch.zeros_like(goal_normalized)], -1)
+        goal_normalized = goal_normalized[:, : self.observation_dim]
+        goal_normalized = self.split_bundle(self._normalize_x(self.make_bundle(goal_normalized)))[0]
+
+        horizon = self.episode_len if horizon is None else horizon
+        plan_hist = self.plan(start_normalized, goal_normalized, horizon, conditions)
+        plan = self._unnormalize_x(plan_hist[-1])
+        plan = plan[self.frame_stack - 1 :]
+
+        # Visualization
+        o, _, _ = self.split_bundle(plan)
+        o = o.detach().cpu().numpy()[:-1, :16]  # last observation is dummy
+        images = make_trajectory_images(self.env_id, o, o.shape[1], start, goal, True)
+        for i, img in enumerate(images):
+            self.log_image(
+                f"{namespace}_plan/sample_{i}",
+                Image.fromarray(img),
+            )
+
+    def interact(self, batch_size: int, conditions=None, namespace="validation"):
+        try:
+            import d4rl
+            import gym
+            from stable_baselines3.common.vec_env import DummyVecEnv
+        except ImportError:
+            print("d4rl import not successful, skipping environment interaction. Check d4rl installation.")
+            return
+
+        print("Interacting with environment... This may take a couple minutes.")
+
+        use_diffused_action = False
+        if self.action_dim != 2:
+            # https://arxiv.org/abs/2205.09991
+            print("Detected reduced observation/action space, using Diffuser like controller.")
+        else:
+            print("Detected full observation/action space, using MPC controller w/ diffused actions.")
+            use_diffused_action = True
+
+        envs = DummyVecEnv([lambda: gym.make(self.env_id)] * batch_size)
+        envs.seed(0)
+
+        terminate = False
+        obs_mean = self.data_mean[: self.observation_dim]
+        obs_std = self.data_std[: self.observation_dim]
+        obs = envs.reset()
+
+        obs = torch.from_numpy(obs).float().to(self.device)
+        start = obs.detach()
+        obs_normalized = ((obs[:, : self.observation_dim] - obs_mean[None]) / obs_std[None]).detach()
+
+        goal = np.concatenate(envs.get_attr("goal_locations"))
+        goal = torch.Tensor(goal).float().to(self.device)
+        goal = torch.cat([goal, torch.zeros_like(goal)], -1)
+        goal = goal[:, : self.observation_dim]
+        goal_normalized = ((goal - obs_mean[None]) / obs_std[None]).detach()
+
+        steps = 0
+        episode_reward = np.zeros(batch_size)
+        episode_reward_if_stay = np.zeros(batch_size)
+        reached = np.zeros(batch_size, dtype=bool)
+        first_reach = np.zeros(batch_size)
+
+        trajectory = []  # actual trajectory
+        all_plan_hist = []  # a list of plan histories, each history is a collection of m diffusion steps
+
+        # run mpc with diffused actions
+        while not terminate and steps < self.episode_len:
+            plan_hist = self.plan(obs_normalized, goal_normalized, self.episode_len - steps, conditions)
+            plan_hist = self._unnormalize_x(plan_hist)  # (m t b c)
+            plan = plan_hist[-1]  # (t b c)
+
+            all_plan_hist.append(plan_hist.cpu())
+
+            for t in range(self.open_loop_horizon):
+                if use_diffused_action:
+                    _, action, _ = self.split_bundle(plan[t])
+                else:
+                    plan_vel = plan[t, :, :2] - plan[t - 1, :, :2] if t > 0 else plan[t, :, :2] - obs[:, :2]
+                    action = 12.5 * (plan[t, :, :2] - obs[:, :2]) + 1.2 * (plan_vel - obs[:, 2:])
+                action = torch.clip(action, -1, 1).detach().cpu()
+                obs, reward, done, _ = envs.step(np.nan_to_num(action.numpy()))
+
+                reached = np.logical_or(reached, reward >= 1.0)
+                episode_reward += reward
+                episode_reward_if_stay += np.where(~reached, reward, 1)
+                first_reach += ~reached
+
+                if done.any():
+                    terminate = True
+                    break
+
+                obs, reward, done = [torch.from_numpy(item).float() for item in [obs, reward, done]]
+                bundle = self.make_bundle(obs, action, reward[..., None])
+                trajectory.append(bundle)
+                obs = obs.to(self.device)
+                obs_normalized = ((obs[:, : self.observation_dim] - obs_mean[None]) / obs_std[None]).detach()
+
+                steps += 1
+
+        self.log(f"{namespace}/episode_reward", episode_reward.mean())
+        self.log(f"{namespace}/episode_reward_if_stay", episode_reward_if_stay.mean())
+        self.log(f"{namespace}/first_reach", first_reach.mean())
+
+        # Visualization
+        samples = min(16, batch_size)
+        trajectory = torch.stack(trajectory)
+        start = start[:, :2].cpu().numpy().tolist()
+        goal = goal[:, :2].cpu().numpy().tolist()
+        images = make_trajectory_images(self.env_id, trajectory, samples, start, goal)
+
+        for i, img in enumerate(images):
+            self.log_image(
+                f"{namespace}_interaction/sample_{i}",
+                Image.fromarray(img),
+            )
+
+    def pad_init(self, x, batch_first=False):
+        x = repeat(x, "b ... -> fs b ...", fs=self.frame_stack)
+        if self.padding_mode == "zero":
+            x[: self.frame_stack - 1] = 0
+        elif self.padding_mode != "same":
+            raise ValueError("init_pad must be 'zero' or 'same'")
+        if batch_first:
+            x = rearrange(x, "fs b ... -> b fs ...")
+
+        return x
 
     def split_bundle(self, bundle):
         if self.use_reward:
@@ -148,255 +404,12 @@ class DiffusionForcingPlanning(DiffusionForcingBase):
 
         return torch.cat(bundle, -1)
 
-    def validation_step(self, batch, batch_idx, namespace="validation"):
-        if self.guidance_scale:
-            self.interact(batch, namespace=namespace, guidance_scale=self.guidance_scale)
-        self.interact(batch, namespace=namespace + "_no_guidance", guidance_scale=0.0)
+    def _generate_noise_levels(self, xs: torch.Tensor, masks: Optional[torch.Tensor] = None) -> torch.Tensor:
+        noise_levels = super()._generate_noise_levels(xs, masks)
+        _, batch_size, *_ = xs.shape
 
-    def interact(self, batch, namespace="validation", guidance_scale=0.0):
-        print("Interacting with environment... This may take a couple minutes.")
-        batch_size, n_frames = batch[0].shape[:2]
+        # first frame is almost always known, this reflect that
+        if random() < 0.5:
+            noise_levels[0] = torch.randint(0, self.timesteps // 4, (batch_size,), device=xs.device)
 
-        r_scale = 1
-        g_scale = 1
-
-        from stable_baselines3.common.vec_env import DummyVecEnv
-        import gym
-
-        envs = DummyVecEnv([lambda: gym.make(self.env_id)] * batch_size)
-        envs.seed(0)
-        terminate = False
-        obs = envs.reset()
-        goal = np.concatenate(envs.get_attr("goal_locations"))
-        goal = torch.Tensor(goal).float().to(self.device)
-
-        obs = torch.from_numpy(obs).float().to(self.device)
-        obs = self.split_bundle(self._normalize_x(self.make_bundle(obs)))[0]
-        z = self.init_encoder(obs)
-
-        # holds a list of plans during the MPC
-        plan_history = []
-
-        # holds the bundle for each time step
-        trajectory = [self.make_bundle(obs)]
-        steps = 0
-        episode_reward = np.zeros(batch_size)
-        while not terminate and steps < n_frames:
-            if self.chunk_size > 0:
-                unstacked_horizon = min(n_frames - steps, self.chunk_size)
-            else:
-                unstacked_horizon = n_frames - steps
-            horizon = np.ceil(unstacked_horizon / self.frame_stack).astype(int)
-            plan = [
-                torch.randn((batch_size,) + tuple(self.x_stacked_shape), device=self.device) for _ in range(horizon)
-            ]
-            last_plan = [None for _ in range(horizon)]
-
-            plan_history_m = []
-            pyramid_height = self.sampling_timesteps + int(horizon * self.uncertainty_scale)
-            pyramid = np.zeros((pyramid_height, horizon), dtype=int)
-            for m in range(pyramid_height):
-                for t in range(horizon):
-                    pyramid[m, t] = m - int(t * self.uncertainty_scale)
-
-            # the indexing is slightly different from the paper. The entry in the pyramid is not the noise level 0...K
-            # but the index for noise level during DDIM denoising. For example, if there are 10 DDIM steps,
-            # a value of 1 means noise level is at 0.9K before this diffusion step. A value of 10 means fully diffused
-
-            for m in range(pyramid_height):
-                guidance_consts = []
-
-                # we draw multiple sample trajectories.
-                clean_plan_samples = [[] for _ in range(horizon)]
-                z_chunk = z.detach()
-
-                with torch.enable_grad():
-                    for t in range(horizon):
-                        plan[t].requires_grad_(True)
-                        last_plan[t] = plan[t]
-                        i = max(min(pyramid[m, t], self.sampling_timesteps - 1), 0)
-                        # bundle_new: less noisy version of bundle; got by forward diffuse 'denoised'
-                        # z_chunk_next: z estimation for next time step
-                        # clean: clean version of bundle; x0
-                        # guidance_const: guidance constant for this ddim step
-                        (
-                            bundle_new,
-                            z_chunk_next,
-                            bundle_clean,
-                            guidance_const,
-                        ) = self.transition_model.ddim_sample_step(
-                            plan[t],
-                            z_chunk,
-                            None,  # conditions_plan[t],
-                            i,
-                            return_x_start=True,
-                            return_guidance_const=True,
-                        )
-                        clean_plan_samples[t].append(bundle_clean)
-                        guidance_consts.append(guidance_const)
-
-                        # draws more samples to get better gradient for guidance
-                        bundle_temp = plan[t]
-                        if guidance_scale:
-                            for _ in range(self.ddim_repeats - 1):
-                                _, _, bundle_clean = self.transition_model.ddim_sample_step(
-                                    bundle_temp,
-                                    z_chunk,
-                                    None,  # conditions_plan[t],
-                                    i,
-                                    return_x_start=True,
-                                )
-                                clean_plan_samples[t].append(bundle_clean)
-                                times = torch.linspace(
-                                    -1,
-                                    self.transition_model.num_timesteps - 1,
-                                    steps=self.transition_model.sampling_timesteps + 1,
-                                )
-                                times = list(reversed(times.int().tolist()))
-                                time_pairs = list(zip(times[:-1], times[1:]))
-                                time = torch.full((batch_size,), time_pairs[i][0]).to(self.device)
-                                bundle_temp = self.transition_model.q_sample(bundle_clean, time)
-
-                        z_chunk = z_chunk_next
-
-                        if pyramid[m, t] < self.sampling_timesteps:
-                            plan[t] = bundle_new
-                        else:
-                            plan[t] = plan[t].detach()
-
-                    if guidance_scale:
-                        clean_plan_samples = torch.stack([torch.stack(sample) for sample in clean_plan_samples])
-                        clean_plan_samples = rearrange(
-                            clean_plan_samples,
-                            "t r b (fs c) -> (t fs) b r c",
-                            fs=self.frame_stack,
-                            c=self.unstacked_dim,
-                        )
-
-                        weight = [1**j for j in range(horizon * self.frame_stack)]
-                        weight = torch.from_numpy(np.array(weight)).float().to(self.device)
-
-                        if unstacked_horizon == n_frames - steps:
-                            weight[-1] = 0.0
-
-                        # optional reward shaping so it has better numerical landscape, not used for sparse
-                        # we didn't use this in paper but this could be useful for future work
-                        episode_return_dense = r_scale * clean_plan_samples[..., -1] * weight[:, None, None]
-                        episode_return_dense = episode_return_dense.sum([0, 1]).mean() * 4.0
-
-                        # calculate negative distance to goal, so we can guide by goal like original diffusion planning paper
-                        unnormalized_plan_samples = self._unnormalize_x(clean_plan_samples)
-                        dist = torch.linalg.norm(unnormalized_plan_samples[..., :2] - goal[None, :, None], dim=-1)
-                        episode_return_sparse = -(g_scale * n_frames * dist * weight[:, None, None]).sum(1).mean()
-                        episode_return = episode_return_dense if self.use_reward else episode_return_sparse
-
-                        # guidance by episode return
-                        grads = torch.autograd.grad([episode_return], last_plan, allow_unused=True)
-                        for t in range(horizon):
-                            plan[t] = plan[t] + guidance_consts[t] * grads[t] * guidance_scale
-
-                plan_processed = torch.stack(plan)
-                plan_processed = rearrange(
-                    plan_processed, "t b (fs c) -> (t fs) b c", fs=self.frame_stack, c=self.unstacked_dim
-                )
-                plan_processed = self._unnormalize_x(plan_processed).cpu()
-                plan_history_m.append(plan_processed)
-
-            plan_history.append(plan_history_m)
-
-            # interact with the environment for self.open_loop_horizon steps
-            for bundle in plan_history[-1][-1][: self.open_loop_horizon]:
-                _, action, _ = self.split_bundle(bundle)
-                action = torch.clamp(action, -1, 1)
-                obs, reward, done, info = envs.step(np.nan_to_num(action.detach().cpu().numpy()))
-                episode_reward += reward
-                if done.any():
-                    terminate = True
-                    break
-
-                obs, reward, done = [torch.from_numpy(item).float() for item in [obs, reward, done]]
-                bundle = self.make_bundle(obs, action, reward[..., None]).to(self.device)
-                trajectory.append(self._normalize_x(bundle))
-            steps = len(trajectory[1:])
-
-            # done, exit environment interaction
-            if terminate:
-                break
-
-            # update z with specifies context frames; if context_frames is 0, we will be fully markovian
-            if self.context_frames < 0:
-                # use full context
-                context_frames = steps
-            else:
-                context_frames = min(self.context_frames, steps)
-                context_frames = context_frames // self.frame_stack * self.frame_stack
-            z = self.init_encoder(self.split_bundle(trajectory[-context_frames - 1])[0])
-            if context_frames > 0:
-                context = torch.stack(trajectory[-context_frames:])
-                context = context.view(context_frames // self.frame_stack, self.frame_stack, batch_size, -1)
-                context = context.permute(0, 2, 1, 3).contiguous()
-                context = context.reshape(context_frames // self.frame_stack, batch_size, -1)
-                context_condition = None  # conditions[steps - context_frames : steps]
-                for bundle, condition in zip(context, context_condition):
-                    z, _, _, _ = self.transition_model(z, bundle, condition, deterministic_t=0)
-
-        episode_reward = np.mean(episode_reward)
-        self.log(f"{namespace}/episode_reward", episode_reward)
-        print(f"Guidance: {guidance_scale:.2f}, Episode reward: {episode_reward:.1f}")
-
-        # Visualization
-        trajectory = torch.stack(trajectory)[:-1]  # last observation is dummy
-        trajectory = self._unnormalize_x(trajectory).cpu().numpy()
-        goal = goal.cpu().numpy()
-
-        start = trajectory[0, :, :2].tolist()
-        goal = goal[:, :2].tolist()
-
-        images = make_trajectory_images(self.env_id, trajectory, batch_size, start, goal)
-        for i, img in enumerate(images):
-            self.log_image(
-                f"{namespace}_visualization/sample_{i}",
-                Image.fromarray(img),
-            )
-
-        if self.debug:
-            # save diffusion convergence and MPC animations, very slow!
-            if "medium" in self.env_id:
-                indicies = [2, 4]  # choose start/goal with relatively long distances (harder)
-            else:
-                indicies = [2, 7]  # choose start/goal with relatively long distances (harder)
-
-            for i in indicies:
-                filename = make_convergence_animation(
-                    self.env_id,
-                    plan_history,
-                    trajectory,
-                    start,
-                    goal,
-                    self.open_loop_horizon,
-                    namespace=namespace,
-                    batch_idx=i,
-                )
-                self.logger.experiment.log(
-                    {
-                        f"convergence/{namespace}_{i}": wandb.Video(filename, fps=4),
-                        f"trainer/global_step": self.global_step,
-                    }
-                )
-
-                filename = make_mpc_animation(
-                    self.env_id,
-                    plan_history,
-                    trajectory,
-                    start,
-                    goal,
-                    self.open_loop_horizon,
-                    namespace=namespace,
-                    batch_idx=i,
-                )
-                self.logger.experiment.log(
-                    {
-                        f"mpc/{namespace}_{i}": wandb.Video(filename, fps=24),
-                        f"trainer/global_step": self.global_step,
-                    }
-                )
+        return noise_levels

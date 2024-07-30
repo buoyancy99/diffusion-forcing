@@ -1,9 +1,8 @@
 from typing import Optional
-
 import wandb
-
 import numpy as np
 import torch
+
 import matplotlib.pyplot as plt
 import cv2
 import matplotlib.pyplot as plt
@@ -14,7 +13,10 @@ from pathlib import Path
 plt.set_loglevel("warning")
 
 from torchmetrics.functional import mean_squared_error, peak_signal_noise_ratio
-from torchmetrics.functional import structural_similarity_index_measure, universal_image_quality_index
+from torchmetrics.functional import (
+    structural_similarity_index_measure,
+    universal_image_quality_index,
+)
 from algorithms.common.metrics import (
     FrechetVideoDistance,
     LearnedPerceptualImagePatchSimilarity,
@@ -22,6 +24,7 @@ from algorithms.common.metrics import (
 )
 
 
+# FIXME: clean up & check this util
 def log_video(
     observation_hat,
     observation_gt=None,
@@ -62,17 +65,12 @@ def log_video(
     n_samples = len(video)
     # use wandb directly here since pytorch lightning doesn't support logging videos yet
     for i in range(n_samples):
-        logger.log({f"{namespace}/{prefix}_{i}": wandb.Video(video[i], fps=24), f"trainer/global_step": step})
-        # path = Path(f"outputs/robot_video/video_{i}")
-        # path.mkdir(parents=True, exist_ok=True)
-        # for t, f in enumerate(video[i]):
-        #     (path / "view1").mkdir(parents=True, exist_ok=True)
-        #     (path / "view2").mkdir(parents=True, exist_ok=True)
-        #     f = f[..., :32]
-        #     f = np.transpose(f, (1, 2, 0))
-        #     f = cv2.cvtColor(f, cv2.COLOR_RGB2BGR)
-        #     cv2.imwrite(str((path / f"view1/{t}.png").resolve()), f[:32])
-        #     cv2.imwrite(str((path / f"view2/{t}.png").resolve()), f[32:])
+        logger.log(
+            {
+                f"{namespace}/{prefix}_{i}": wandb.Video(video[i], fps=24),
+                f"trainer/global_step": step,
+            }
+        )
 
 
 def get_validation_metrics_for_videos(
@@ -94,8 +92,14 @@ def get_validation_metrics_for_videos(
     output_dict = {}
     observation_gt = observation_gt.type_as(observation_hat)  # some metrics don't fully support fp16
 
+    if frame < 9:
+        fvd_model = None  # FVD requires at least 9 frames
+
     if fvd_model is not None:
-        output_dict["fvd"] = fvd_model.compute(observation_hat, observation_gt)
+        output_dict["fvd"] = fvd_model.compute(
+            torch.clamp(observation_hat, -1.0, 1.0),
+            torch.clamp(observation_gt, -1.0, 1.0),
+        )
 
     # reshape to (frame * batch, channel, height, width) for image losses
     observation_hat = observation_hat.view(-1, channel, height, width)
@@ -104,8 +108,7 @@ def get_validation_metrics_for_videos(
     output_dict["mse"] = mean_squared_error(observation_hat, observation_gt)
     output_dict["psnr"] = peak_signal_noise_ratio(observation_hat, observation_gt, data_range=2.0)
     output_dict["ssim"] = structural_similarity_index_measure(observation_hat, observation_gt, data_range=2.0)
-    output_dict["uiqi"] = universal_image_quality_index(observation_hat, observation_gt, data_range=2.0)
-
+    output_dict["uiqi"] = universal_image_quality_index(observation_hat, observation_gt)
     # operations for LPIPS and FID
     observation_hat = torch.clamp(observation_hat, -1.0, 1.0)
     observation_gt = torch.clamp(observation_gt, -1.0, 1.0)
@@ -130,331 +133,36 @@ def get_validation_metrics_for_videos(
     return output_dict
 
 
-def get_validation_metrics_for_states(observation_hat, observation_gt):
-    """
-    :param observation_hat: predicted observation tensor of shape (frame, batch, channel)
-    :param observation_gt: ground-truth observation tensor of shape (frame, batch, channel)
-    :return: a tuple of metrics
-    """
-    frame, batch, channel = observation_hat.shape
-
-    # reshape to (frame * batch, channel)
-    observation_hat = observation_hat.reshape(-1, channel)
-    observation_gt = observation_gt.reshape(-1, channel)
-
-    mse = mean_squared_error(observation_hat, observation_gt)
-    psnr = peak_signal_noise_ratio(observation_hat, observation_gt)
-
-    output_dict = {
-        "mse": mse,
-        "psnr": psnr,
-    }
-
-    return output_dict
-
-
-def log_galton_for_states(batch_idx, observations_hat, observations_gt, namespace, step):
-    def compute_trajectory(dx):
-        """
-        Integrate sequence of increments dx to get trajectory x.
-        """
-        x = [torch.zeros(dx.shape[1], 1, device=dx.device)]
-        num_time_steps = dx.shape[0]
-        for t in range(num_time_steps):
-            x.append(dx[t] + x[-1])
-        x = torch.stack(x)
-        x = x.permute(1, 0, 2)
-        return x
-
-    x_hat = compute_trajectory(observations_hat)
-    x_gt = compute_trajectory(observations_gt)
-
-    if wandb.run is not None:
-        if batch_idx == 0:
-            for i in range(min(4, x_hat.shape[0])):
-                # Plot x_i and x_gt_i and log the plot to wandb
-                fig, ax = plt.subplots(1, 1, figsize=(20, 10))
-                ax.plot(x_hat[i, :, 0].detach().cpu().numpy(), linewidth=3, label="x_hat")
-                ax.plot(x_gt[i, :, 0].detach().cpu().numpy(), linewidth=3, label="x_gt")
-                ax.legend()
-                wandb.log({f"{namespace}/x_{i}": wandb.Image(fig)}, step=step)
-                plt.close(fig)
-
-    final_x_hat = torch.flatten(x_hat[:, -1]).detach().cpu().numpy()
-    final_x_gt = torch.flatten(x_gt[:, -1]).detach().cpu().numpy()
-    dx_hat = torch.flatten(torch.diff(x_hat, dim=1)).detach().cpu().numpy()
-    dx_gt = torch.flatten(torch.diff(x_gt, dim=1)).detach().cpu().numpy()
-
-    return final_x_hat, final_x_gt, dx_hat, dx_gt
-
-
-def log_galton_for_pixels(batch_idx, observations_hat, observations_gt, namespace, step):
-    """
-    :param observation_hat: predicted observation tensor of shape (frame, batch, channel, height, width)
-    :param observation_gt: ground-truth observation tensor of shape (frame, batch, channel, height, width)
-    :param namespace: the namespace to log to
-    :param step: the step to log to
-    """
-
-    observations_hat_np = observations_hat.permute(0, 1, 3, 4, 2).detach().cpu().numpy()
-    observations_gt_np = observations_gt.permute(0, 1, 3, 4, 2).detach().cpu().numpy()
-    observations_hat_np = (np.clip(observations_hat_np + 1.0, a_min=0.0, a_max=2.0) / 2 * 255).astype(np.uint8)
-    observations_gt_np = (np.clip(observations_gt_np + 1.0, a_min=0.0, a_max=2.0) / 2 * 255).astype(np.uint8)
-    x_hat, centers_hat, contours_hat = get_galton_metrics_for_pixels(observations_hat_np)
-    x_gt, centers_gt, contours_gt = get_galton_metrics_for_pixels(observations_gt_np)
-
-    if wandb.run is not None:
-        if batch_idx == 0:
-            observations_hat_np = np.transpose(observations_hat_np, (1, 0, 2, 3, 4))
-            observations_gt_np = np.transpose(observations_gt_np, (1, 0, 2, 3, 4))
-
-            # Log average number of balls
-            avg_num_predicted_balls = np.mean(
-                [len(contours_hat[i][t]) for i in range(len(contours_hat)) for t in range(len(contours_hat[i]))]
-            )
-            wandb.log({f"{namespace}/avg_num_predicted_balls": avg_num_predicted_balls}, step=step)
-
-            for i in range(min(4, x_hat.shape[0])):
-                # Plot x_i and x_gt_i and log the plot to wandb
-                fig, ax = plt.subplots(1, 1, figsize=(20, 10))
-                ax.plot(x_hat[i, :], linewidth=3, label="x_hat")
-                ax.plot(x_gt[i, :], linewidth=3, label="x_gt")
-                ax.legend()
-                wandb.log({f"{namespace}/x_{i}": wandb.Image(fig)}, step=step)
-                plt.close(fig)
-
-                # Plot contours and log the plot to wandb
-                video = []
-                for t in range(len(centers_hat[i])):
-                    img_hat = render_ball_contours_and_center(
-                        observations_hat_np[i, t], centers_hat[i][t], contours_hat[i][t]
-                    )
-                    img_gt = render_ball_contours_and_center(
-                        observations_gt_np[i, t], centers_gt[i][t], contours_gt[i][t]
-                    )
-                    img_gt[[0, -1], :, 0] = 255
-                    img_gt[:, [0, -1], 0] = 255
-                    img = np.concatenate([img_hat, img_gt], axis=1)
-                    img = np.transpose(img, (2, 0, 1))
-                    video.append(img)
-                wandb.log({f"{namespace}/contours_{i}": wandb.Video(np.array(video), fps=5, format="gif")}, step=step)
-
-    final_x_hat = x_hat[:, -1].flatten()
-    final_x_gt = x_gt[:, -1].flatten()
-    dx_hat = np.diff(x_hat, axis=1).flatten()
-    dx_gt = np.diff(x_gt, axis=1).flatten()
-
-    return final_x_hat, final_x_gt, dx_hat, dx_gt
-
-
-def get_galton_metrics_for_pixels(observations):
-    """
-    :param observations: tensor of shape (frame, batch, height, width, channel)
-    :return: x, centers, contours; all of shape (batch, frame)
-    """
-    frame, batch, height, width, channel = observations.shape
-    middle = [width // 2, height // 2]
-
-    batched_x = []
-    batched_center = []
-    batched_contours = []
-    for b in range(batch):
-        x = []
-        dx = []
-        contours_seq = []
-        center_seq = []
-        for f in range(frame):
-            result = get_ball_center_and_contours(observations[f, b])
-            if result is None:
-                dx.append(np.nan) if f > 0 else x.append(np.nan)
-                center_seq.append([])
-                contours_seq.append([])
-                continue
-
-            center, contours = result
-            center_seq.append(center)
-            contours_seq.append(contours)
-            center_x_normalized = (center[0] - middle[0]) / middle[0]
-            dx.append(center_x_normalized) if f > 0 else x.append(center_x_normalized)
-
-        x = np.insert(np.cumsum(dx), 0, x[0])
-        batched_x.append(x)
-        batched_center.append(center_seq)
-        batched_contours.append(contours_seq)
-
-    batched_x = np.stack(batched_x)
-
-    return batched_x, batched_center, batched_contours
-
-
-def get_ball_center_and_contours(img):
-    """
-    :param img: an RGB image of shape (height, width, channel) as uint8
-    :return: a tuple of (center, contours) where center is a list of [x, y] and contours is a list of contours
-    """
-
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    _, img = cv2.threshold(img, 215, 255, cv2.THRESH_BINARY_INV)
-    contours, _ = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    if len(contours) == 0:
-        return None
-
-    largest_contour = max(contours, key=cv2.contourArea)
-    moments = cv2.moments(largest_contour)
-    if moments["m00"] == 0:
-        return None
-    center = [int(moments["m10"] / moments["m00"]), int(moments["m01"] / moments["m00"])]
-
-    return center, contours
-
-
-def plot_ball_contours_and_center(img, center, contours):
-    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
-    ax.set_axis_off()
-    fig.subplots_adjust(bottom=0)
-    fig.subplots_adjust(top=1)
-    fig.subplots_adjust(right=1)
-    fig.subplots_adjust(left=0)
-
-    ax.imshow(img)
-    ax.scatter(center[0], center[1], c="r")
-    for contour in contours:
-        ax.plot(contour[:, 0, 0], contour[:, 0, 1], c="r", linewidth=3)
-    return fig
-
-
-def render_ball_contours_and_center(img, center, contours):
-    len = 3
-    color = (0, 255, 0)
-
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    if center:
-        # Draw cross at center
-        img = cv2.line(img, (center[0] - len, center[1] - len), (center[0] + len, center[1] + len), color, 1)
-        img = cv2.line(img, (center[0] - len, center[1] + len), (center[0] + len, center[1] - len), color, 1)
-        # img = cv2.circle(img, (center[0], center[1]), 1, tuple((255 - c for c in color)), -1)
-    if contours:
-        for contour in contours:
-            img = cv2.drawContours(img, [contour], 0, color, 1)
-    return img
-
-
-def accumulate_and_log_histograms(keys, values, namespace, step):
-    """
-    Accumulate data from all steps in validation epoch and log histograms to wandb.
-    """
-    if wandb.run is not None:
-        for key, value in zip(keys, values):
-            value = np.concatenate(value, axis=0)
-            wandb.log({f"{namespace}/{key}": wandb.Histogram(value[~np.isnan(value)])}, step=step)
-
-
-def log_timeseries_plots(all_preds, truth, context_frames, namespace, step, frequency: Optional[str] = None):
-    """
-    Plot timeseries and log to wandb.
-    :param all_preds: (samples, time, batch, feature)
-    :param truth: (time, batch, feature)
-    """
-
-    if wandb.run is not None:
-        batch_idx = 0  # Adjust this as needed based on the dataset 
-        # In pytorch-ts repo, the following values are used - electricity: 0, solar: 3, wikipedia: 0
-
-        preds = all_preds[:, context_frames:, batch_idx, :].detach().cpu().numpy()
-        truth = truth[:, batch_idx, :].detach().cpu().numpy()
-        seq_length, target_dim = truth.shape
-
-        rows = 4
-        cols = 4
-        fig, axs = plt.subplots(rows, cols, figsize=(20, 12))
-        axx = axs.ravel()
-
-        freq_map = {
-            "D": "d",
-            "B": "d",
-            "30min": "h",
-            "H": "h",
-        }
-        freq_label = freq_map.get(frequency, "")
-
-        for feature in range(min(rows * cols, target_dim)):
-            ax = axx[feature]
-
-            ax.plot(truth[:, feature], label="Ground truth trajectory", color='#008000', linewidth=2)
-            median_pred = np.median(preds[:, :, feature], axis=0)
-            ax.plot(range(context_frames, seq_length), median_pred, label="Median prediction", color='#0000FF', 
-                    linewidth=2)
-
-            ax.axvline(x=context_frames, color="dimgray", linestyle="--")
-            ax.axvspan(context_frames, seq_length, facecolor="oldlace")
-
-            # 90% prediction interval
-            lower_90 = np.percentile(preds[:, :, feature], 5, axis=0)
-            upper_90 = np.percentile(preds[:, :, feature], 95, axis=0)
-            ax.fill_between(
-                range(context_frames, seq_length),
-                lower_90,
-                upper_90,
-                color="lavender",
-                label="90% prediction interval",
-            )
-
-            # 50% prediction interval
-            lower_50 = np.percentile(preds[:, :, feature], 25, axis=0)
-            upper_50 = np.percentile(preds[:, :, feature], 75, axis=0)
-            ax.fill_between(
-                range(context_frames, seq_length),
-                lower_50,
-                upper_50,
-                color="lightsteelblue",
-                label="50% prediction interval",
-            )
-
-            ax.set_title(f"Feature {feature + 1}", fontsize=16, weight="bold")
-
-            ax.set_xlim([0, seq_length - 1])
-            tick_positions = np.linspace(0, seq_length - 1, num=5)
-            tick_positions = np.round(tick_positions).astype(int)
-            tick_positions[2] = context_frames
-            if frequency == "30min":
-                tick_labels = [f"{(i - context_frames) / 2:+} {freq_label}" for i in tick_positions]
-            else:
-                tick_labels = [f"{i - context_frames:+} {freq_label}" for i in tick_positions]
-            tick_labels = [r'$t_0$' if x.startswith('+0') else x for x in tick_labels]
-            ax.set_xticks(tick_positions)
-            ax.set_xticklabels(tick_labels)
-
-            # Thicker black outline
-            for spine in ax.spines.values():
-                spine.set_edgecolor('black')
-                spine.set_linewidth(2)
-
-        # Add a proxy artist for the prediction horizon background color in the legend
-        from matplotlib.patches import Patch
-        prediction_horizon_patch = Patch(facecolor="oldlace", label="Prediction window")
-
-        # Legend outside the subplots
-        handles, labels = ax.get_legend_handles_labels()
-        handles.append(prediction_horizon_patch)
-        labels.append("Prediction window")
-        fig.legend(handles, labels, loc="upper center", ncols=3, fontsize=14)
-
-        plt.tight_layout(rect=[0, 0, 1, 0.9])
-        wandb.log({f"{namespace}/timeseries": wandb.Image(plt)}, step=step if step is not 0 else None)
-        plt.close(fig)
-
-
 def is_grid_env(env_id):
     return "maze2d" in env_id or "diagonal2d" in env_id
 
 
 def get_maze_grid(env_id):
-    import gym
-
-    maze_string = gym.make(env_id).str_maze_spec
+    # import gym
+    # maze_string = gym.make(env_id).str_maze_spec
+    if "large" in env_id:
+        maze_string = "############\\#OOOO#OOOOO#\\#O##O#O#O#O#\\#OOOOOO#OOO#\\#O####O###O#\\#OO#O#OOOOO#\\##O#O#O#O###\\#OO#OOO#OGO#\\############"
+    if "medium" in env_id:
+        maze_string = "########\\#OO##OO#\\#OO#OOO#\\##OOO###\\#OO#OOO#\\#O#OO#O#\\#OOO#OG#\\########"
+    if "umaze" in env_id:
+        maze_string = "#####\\#GOO#\\###O#\\#OOO#\\#####"
     lines = maze_string.split("\\")
     grid = [line[1:-1] for line in lines]
     return grid[1:-1]
+
+
+def get_random_start_goal(env_id, batch_size):
+    maze_grid = get_maze_grid(env_id)
+    s2i = {"O": 0, "#": 1, "G": 2}
+    maze_grid = [[s2i[s] for s in r] for r in maze_grid]
+    maze_grid = np.array(maze_grid)
+    x, y = np.nonzero(maze_grid == 0)
+    indices = np.random.randint(len(x), size=batch_size)
+    start = np.stack([x[indices], y[indices]], -1) + 1
+    x, y = np.nonzero(maze_grid == 2)
+    goal = np.concatenate([x, y], -1)
+    goal = np.tile(goal[None, :], (batch_size, 1)) + 1
+    return start, goal
 
 
 def plot_maze_layout(ax, maze_grid):
@@ -711,22 +419,3 @@ def make_mpc_animation(
     ani.save(filename, writer="ffmpeg", fps=24)
 
     return filename
-
-
-if __name__ == "__main__":
-    # Draw image of a circle in a white background
-    img = np.ones((64, 64, 3), np.uint8) * 255
-    img = cv2.circle(img, (11, 32), 8, (0, 0, 0), -1)
-    img = cv2.circle(img, (50, 32), 6, (220, 220, 220), -1)
-
-    # Get the center of the circle
-    result = get_ball_center_and_contours(img)
-    if result is None:
-        print("No ball found")
-        exit()
-    center, contours = result
-
-    # fig = plot_ball_contours_center(img, center, contours)
-    img = render_ball_contours_and_center(img, center, contours)
-    plt.imshow(img)
-    plt.show()

@@ -1,4 +1,4 @@
-torch~=2.0.0
+torch~=2.4.0
 torchvision~=0.15.1
 lightning~=2.1.2
 wandb~=0.17.0
@@ -20,4 +20,3 @@ pandas
 pyzmq
 pyrealsense2
 internetarchive
-

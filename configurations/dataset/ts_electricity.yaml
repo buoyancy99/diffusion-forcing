@@ -1,5 +1,0 @@
-defaults:
-  - base_timeseries
-
-name: ts_electricity
-gluonts_name: electricity_nips

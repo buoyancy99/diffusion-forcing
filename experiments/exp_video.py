@@ -1,4 +1,7 @@
-from datasets.video import DmlabVideoDataset, MinecraftVideoDataset
+from datasets.video import (
+    MinecraftVideoDataset,
+    DmlabVideoDataset,
+)
 from algorithms.diffusion_forcing import DiffusionForcingVideo
 from .exp_base import BaseLightningExperiment
 
@@ -14,6 +17,6 @@ class VideoPredictionExperiment(BaseLightningExperiment):
 
     compatible_datasets = dict(
         # video datasets
-        video_dmlab=DmlabVideoDataset,
         video_minecraft=MinecraftVideoDataset,
+        video_dmlab=DmlabVideoDataset,
     )

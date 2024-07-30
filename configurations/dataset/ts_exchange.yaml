@@ -1,5 +1,0 @@
-defaults:
-  - base_timeseries
-
-name: ts_exchange
-gluonts_name: exchange_rate_nips

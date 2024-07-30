@@ -1,13 +1,7 @@
 """
 Main file for the project. This will create and run new experiments and load checkpoints from wandb. 
+Borrowed part of the code from David Charatan and wandb.
 """
-
-import warnings
-
-warnings.filterwarnings(
-    action="ignore",
-    module="gluonts*",
-)
 
 import sys
 import subprocess
@@ -27,16 +21,7 @@ from utils.distributed_utils import is_rank_zero
 def run_local(cfg: DictConfig):
     # delay some imports in case they are not needed in non-local envs for submission
     from experiments import build_experiment
-    import torch
     from utils.wandb_utils import OfflineWandbLogger, SpaceEfficientWandbLogger
-
-    import torch._dynamo
-
-    torch._dynamo.config.suppress_errors = True
-
-    # Set matmul precision (for newer GPUs, e.g., A6000).
-    if hasattr(torch, "set_float32_matmul_precision"):
-        torch.set_float32_matmul_precision("high")
 
     # Get yaml names
     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
@@ -68,12 +53,14 @@ def run_local(cfg: DictConfig):
         else:
             logger_cls = SpaceEfficientWandbLogger
 
+        offline = cfg.wandb.mode != "online"
         logger = logger_cls(
             name=name,
             save_dir=str(output_dir),
-            offline=cfg.wandb.mode != "online",
+            offline=offline,
+            entity=cfg.wandb.entity,
             project=cfg.wandb.project,
-            log_model="all" if cfg.wandb.mode == "online" else False,
+            log_model="all" if not offline else False,
             config=OmegaConf.to_container(cfg),
             id=resume,
         )
@@ -143,13 +130,13 @@ def run_slurm(cfg: DictConfig):
     try:
         while not list(slurm_log_dir.glob("*.out")) and not list(slurm_log_dir.glob("*.err")):
             time.sleep(1)
-        print(cyan("To trace the outputs and errors, run the following command:"))
+        print(cyan("To trace the outputs and errors, run the following command:"), msg)
     except KeyboardInterrupt:
         print("Keyboard interrupt detected. Exiting...")
         print(
-            cyan("To trace the outputs and errors, manually wait for the job to start and run the following command:")
+            cyan("To trace the outputs and errors, manually wait for the job to start and run the following command:"),
+            msg,
         )
-    print(msg)
 
 
 @hydra.main(
@@ -205,4 +192,4 @@ def run(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    run()
+    run()  # pylint: disable=no-value-for-parameter

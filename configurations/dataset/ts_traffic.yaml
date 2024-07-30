@@ -1,5 +1,0 @@
-defaults:
-  - base_timeseries
-
-name: ts_traffic
-gluonts_name: traffic_nips

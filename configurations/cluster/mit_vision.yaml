@@ -2,10 +2,11 @@ defaults:
   - base_slurm
 
 params:
+  env_name: df_transformer
   partition: vision-sitzmann
   qos: vision-sitzmann-main
   num_gpus: 8
-  memory: 256G
+  memory: 512G
   num_cpus: 64
   time: "72:0:0"
 
@@ -23,7 +24,7 @@ launch_template: |
   #SBATCH --time={time}
   #SBATCH --partition={partition}
   #SBATCH --qos={qos}
-  source /data/scratch/boyuanc/.bashrc
+  source ~/.bashrc
   conda activate {env_name}
   cd {project_root}
   python -m main {python_args}

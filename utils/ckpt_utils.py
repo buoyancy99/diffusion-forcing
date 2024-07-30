@@ -30,19 +30,3 @@ def download_latest_checkpoint(run_path: str, download_dir: Path) -> Path:
     root = download_dir / run_path
     latest.download(root=root)
     return root / "model.ckpt"
-
-
-def rewrite_compiled_ckpt(ckpt_path: Path):
-    """Rewrite a checkpoint to remove the torch.compile influence"""
-    import torch
-
-    ckpt = torch.load(ckpt_path)
-    need_conversion = False
-    for k in ckpt["state_dict"].keys():
-        if "_orig_mod." in k:
-            need_conversion = True
-
-    if need_conversion:
-        print("Rewriting compiled checkpoint...")
-        ckpt = {k.replace("_orig_mod.", ""): v for k, v in ckpt["state_dict"].items()}
-        torch.save(ckpt, ckpt_path)

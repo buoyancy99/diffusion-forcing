@@ -3,7 +3,6 @@ Adopted from https://github.com/cvpr2022-stylegan-v/stylegan-v
 Verified to be the same as tf version by https://github.com/universome/fvd-comparison
 """
 
-
 import io
 import re
 import requests
@@ -19,12 +18,17 @@ import torch.nn as nn
 import numpy as np
 
 
-def open_url(url: str, num_attempts: int = 10, verbose: bool = True, return_filename: bool = False) -> Any:
+def open_url(
+    url: str,
+    num_attempts: int = 10,
+    verbose: bool = True,
+    return_filename: bool = False,
+) -> Any:
     """Download the given URL and return a binary-mode file object to access the data."""
     assert num_attempts >= 1
 
     # Doesn't look like an URL scheme so interpret it as a local filename.
-    if not re.match('^[a-z]+://', url):
+    if not re.match("^[a-z]+://", url):
         return url if return_filename else open(url, "rb")
 
     # Handle file URLs.  This code handles unusual file:// patterns that
@@ -41,9 +45,9 @@ def open_url(url: str, num_attempts: int = 10, verbose: bool = True, return_file
     # Some internet resources suggest using urllib.request.url2pathname() but
     # but that converts forward slashes to backslashes and this causes
     # its own set of problems.
-    if url.startswith('file://'):
+    if url.startswith("file://"):
         filename = urllib.parse.urlparse(url).path
-        if re.match(r'^/[a-zA-Z]:', filename):
+        if re.match(r"^/[a-zA-Z]:", filename):
             filename = filename[1:]
         return filename if return_filename else open(filename, "rb")
 
@@ -65,14 +69,23 @@ def open_url(url: str, num_attempts: int = 10, verbose: bool = True, return_file
                     if len(res.content) < 8192:
                         content_str = res.content.decode("utf-8")
                         if "download_warning" in res.headers.get("Set-Cookie", ""):
-                            links = [html.unescape(link) for link in content_str.split('"') if "export=download" in link]
+                            links = [
+                                html.unescape(link)
+                                for link in content_str.split('"')
+                                if "export=download" in link
+                            ]
                             if len(links) == 1:
                                 url = requests.compat.urljoin(url, links[0])
                                 raise IOError("Google Drive virus checker nag")
                         if "Google Drive - Quota exceeded" in content_str:
-                            raise IOError("Google Drive download quota exceeded -- please try again later")
+                            raise IOError(
+                                "Google Drive download quota exceeded -- please try again later"
+                            )
 
-                    match = re.search(r'filename="([^"]*)"', res.headers.get("Content-Disposition", ""))
+                    match = re.search(
+                        r'filename="([^"]*)"',
+                        res.headers.get("Content-Disposition", ""),
+                    )
                     url_name = match[1] if match else url
                     url_data = res.content
                     if verbose:
@@ -98,15 +111,17 @@ def compute_fvd(feats_fake: np.ndarray, feats_real: np.ndarray) -> float:
     mu_real, sigma_real = compute_stats(feats_real)
 
     m = np.square(mu_gen - mu_real).sum()
-    s, _ = scipy.linalg.sqrtm(np.dot(sigma_gen, sigma_real), disp=False) # pylint: disable=no-member
+    s, _ = scipy.linalg.sqrtm(
+        np.dot(sigma_gen, sigma_real), disp=False
+    )  # pylint: disable=no-member
     fid = np.real(m + np.trace(sigma_gen + sigma_real - s * 2))
 
     return float(fid)
 
 
 def compute_stats(feats: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    mu = feats.mean(axis=0) # [d]
-    sigma = np.cov(feats, rowvar=False) # [d, d]
+    mu = feats.mean(axis=0)  # [d]
+    sigma = np.cov(feats, rowvar=False)  # [d, d]
 
     return mu, sigma
 
@@ -114,7 +129,9 @@ def compute_stats(feats: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 class FrechetVideoDistance(nn.Module):
     def __init__(self):
         super().__init__()
-        detector_url = 'https://www.dropbox.com/s/ge9e5ujwgetktms/i3d_torchscript.pt?dl=1'
+        detector_url = (
+            "https://www.dropbox.com/s/ge9e5ujwgetktms/i3d_torchscript.pt?dl=1"
+        )
         # Return raw features before the softmax layer.
         self.detector_kwargs = dict(rescale=False, resize=True, return_features=True)
         with open_url(detector_url, verbose=False) as f:
@@ -129,7 +146,7 @@ class FrechetVideoDistance(nn.Module):
         """
         n_frames, batch_size, c, h, w = videos_fake.shape
         if n_frames < 2:
-            raise ValueError('Video must have more than 1 frame for FVD')
+            raise ValueError("Video must have more than 1 frame for FVD")
 
         videos_fake = videos_fake.permute(1, 2, 0, 3, 4).contiguous()
         videos_real = videos_real.permute(1, 2, 0, 3, 4).contiguous()

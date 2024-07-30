@@ -1,40 +1,45 @@
 defaults:
   - df_base
 
-x_shape: null
-z_shape: [128]
-frame_stack: 10
-repeat_observation: 1
-external_cond_dim: 0
-context_frames: 0
-gt_first_frame: 0.0
-warmup_steps: 100
-chunk_size: ${dataset.episode_len}
-calc_crps_sum: False
-
-diffusion:
-  network_size: 32 # 32 for maze2d large, 16 for medium and umaze
-  num_gru_layers: 1
-  num_mlp_layers: 4
-  ddim_sampling_eta: 0.0
-  sampling_timesteps: 50  # fixme, numer of diffusion steps, should be increased
-  beta_schedule: linear
-  use_cum_snr: False
-  snr_clip: 5.0
-  cum_snr_decay: 0.98
-
-random_goal: False
-gamma: ${dataset.gamma}
-episode_len: ${dataset.episode_len}
-guidance_scale: 0. # for frame stack of 10
-ddim_repeats: 0
-env_id: ${dataset.env_id}
-open_loop_horizon: 10 #fixme
-use_reward: False
+# dataset info
+data_mean: null
+data_std: null
 reward_mean: ${dataset.reward_mean}
 reward_std: ${dataset.reward_std}
 observation_mean: ${dataset.observation_mean}
 observation_std: ${dataset.observation_std}
 action_mean: ${dataset.action_mean}
 action_std: ${dataset.action_std}
+gamma: ${dataset.gamma}
+episode_len: ${dataset.episode_len}
+env_id: ${dataset.env_id}
+# non dataset info
+x_shape: null
+frame_stack: 10
+context_frames: 1
+open_loop_horizon: 50 #fixme
+use_reward: False
+causal: False
 plot_start_goal: True
+p: 1.0
+a: 1.0
+v: 1.0
+padding_mode: same
+# training hyperparameters
+weight_decay: 1e-4
+warmup_steps: 10000
+# diffusion-related
+uncertainty_scale: 1
+chunk_size: ${dataset.episode_len}
+scheduling_matrix: pyramid
+
+diffusion:
+  stabilization_level: 10
+  beta_schedule: linear
+  objective: pred_x0
+  ddim_sampling_eta: 0.0
+  architecture:
+    network_size: 128
+    num_layers: 12
+    attn_heads: 4
+    dim_feedforward: 512

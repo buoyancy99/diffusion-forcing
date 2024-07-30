@@ -1,7 +1,7 @@
-is_compute_node_offline: False  # many slurm systems only allows internet on login node, not compute node
+is_compute_node_offline: False # many slurm systems only allows internet on login node, not compute node
 
 params:
-  env_name: template  # change this to the name of your conda environment
+  env_name: diffusion-forcing # change this to the name of your conda environment
   num_gpus: 1
   num_cpus: 32
   memory: 32G
