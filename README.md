@@ -151,7 +151,7 @@ Please checkout `paper` branch for the code used by original paper. If I have ti
 
 # Infra instructions
 
-This repo is forked from [Boyuan Chen](https://boyuan.space/)'s research template repo.
+This repo is forked from [Boyuan Chen](https://boyuan.space/)'s research template [repo](https://github.com/buoyancy99/research-template). By its MIT license, you must keep the above sentence in `README.md` and the `LICENSE` file to credit the author.
 
 All experiments can be launched via `python -m main +name=xxxx {options}` where you can fine more details later in this article.
 

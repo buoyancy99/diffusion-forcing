@@ -13,3 +13,7 @@ directory.
 
 This folder is only intend to contain formal experiments. For debug code and unit tests, put them under `debug` folder.
 For scripts that's not meant to be an experiment please use `scripts` folder.
+
+---
+
+This repo is forked from [Boyuan Chen](https://boyuan.space/)'s research template [repo](https://github.com/buoyancy99/research-template). By its MIT license, you must keep the above sentence in `README.md` and the `LICENSE` file to credit the author.
