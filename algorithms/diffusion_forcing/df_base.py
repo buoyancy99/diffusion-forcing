@@ -62,9 +62,6 @@ class DiffusionForcingBase(BasePytorchAlgo):
             for pg in optimizer.param_groups:
                 pg["lr"] = lr_scale * self.cfg.lr
 
-    def _preprocess_batch(self, batch):
-        raise NotImplementedError
-
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
         xs, conditions, masks = self._preprocess_batch(batch)
 
