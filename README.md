@@ -122,13 +122,15 @@ By default, we run autoregressive sampling with stablization. To sample next 2 t
 
 For those who only wish to reproduce the original paper instead of transformer architecture, please checkout`paper` branch of the code instead.
 
-Medium Maze
+**Medium Maze**
 
 `python -m main experiment=exp_planning algorithm=df_planning dataset=maze2d_medium dataset.action_mean=[] dataset.action_std=[] dataset.observation_mean=[3.5092521,3.4765592] dataset.observation_std=[1.3371079,1.52102] +name=maze2d_medium_x`
 
-Large Maze
+**Large Maze**
 
 `python -m main experiment=exp_planning algorithm=df_planning dataset=maze2d_large dataset.observation_mean=[3.7296331,5.3047247] dataset.observation_std=[1.8070312,2.5687592] dataset.action_mean=[] dataset.action_std=[] +name=maze2d_large_x`
+
+**Run planning after model is trained**
 
 Please take a look at "Load a checkpoint to eval" paragraph to understand how to use load checkpoint with `load=`. To sample, simply append `load={wandb_id_of_above_runs} experiment.tasks=[validation] algorithm.guidance_scale=2 +name=maze2d_sampling` to above command after trained. Feel free to tune the `guidance_scale` from 1 - 5.
 

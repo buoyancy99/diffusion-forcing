@@ -21,15 +21,12 @@ open_loop_horizon: 50 #fixme
 use_reward: False
 causal: False
 plot_start_goal: True
-p: 1.0
-a: 1.0
-v: 1.0
 padding_mode: same
 # training hyperparameters
 weight_decay: 1e-4
 warmup_steps: 10000
 # diffusion-related
-uncertainty_scale: 1
+guidance_scale: 2.0
 chunk_size: ${dataset.episode_len}
 scheduling_matrix: pyramid
 

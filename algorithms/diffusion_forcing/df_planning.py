@@ -33,12 +33,7 @@ class DiffusionForcingPlanning(DiffusionForcingBase):
         self.action_mean = np.array(cfg.action_mean[: self.action_dim])
         self.action_std = np.array(cfg.action_std[: self.action_dim])
         self.open_loop_horizon = cfg.open_loop_horizon
-        self.plot_end_points = cfg.plot_start_goal
-        self.p = cfg.p
-        self.a = cfg.a
-        self.v = cfg.v
-        self.observation_std = np.concatenate([self.observation_std[:2] * self.p, self.observation_std[2:] * self.v])
-        self.action_std = self.action_std * self.a
+        self.plot_end_points = cfg.plot_start_goal and self.guidance_scale != 0
         self.padding_mode = cfg.padding_mode
         super().__init__(cfg)
 
@@ -132,7 +127,7 @@ class DiffusionForcingPlanning(DiffusionForcingBase):
         xs, conditions, _ = self._preprocess_batch(batch)
         _, batch_size, *_ = xs.shape
         if self.guidance_scale == 0:
-            namespace += "_no_guidance"
+            namespace += "_no_guidance_random_walk"
         horizon = self.episode_len
         if self.action_dim != 2:
             self.eval_planning(
@@ -252,7 +247,7 @@ class DiffusionForcingPlanning(DiffusionForcingBase):
         # Visualization
         o, _, _ = self.split_bundle(plan)
         o = o.detach().cpu().numpy()[:-1, :16]  # last observation is dummy
-        images = make_trajectory_images(self.env_id, o, o.shape[1], start, goal, True)
+        images = make_trajectory_images(self.env_id, o, o.shape[1], start, goal, self.plot_end_points)
         for i, img in enumerate(images):
             self.log_image(
                 f"{namespace}_plan/sample_{i}",
@@ -348,7 +343,7 @@ class DiffusionForcingPlanning(DiffusionForcingBase):
         trajectory = torch.stack(trajectory)
         start = start[:, :2].cpu().numpy().tolist()
         goal = goal[:, :2].cpu().numpy().tolist()
-        images = make_trajectory_images(self.env_id, trajectory, samples, start, goal)
+        images = make_trajectory_images(self.env_id, trajectory, samples, start, goal, self.plot_end_points)
 
         for i, img in enumerate(images):
             self.log_image(
