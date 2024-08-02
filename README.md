@@ -61,7 +61,7 @@ Autoregressively generate minecraft video with 1x the length it's trained on:
 
 To let the model roll out **longer than it's trained on**, simply append `dataset.validation_multiplier=8` to the above commands, and it will rollout `8x` longer than maximum sequence length it's trained on.
 
-The above checkpoint is trained for 100K steps with small number of frames. We've already verified diffusion forcing works in latent diffusion setting and can be extended to many more tokens without sacrificing compositionality! Stay tuned for our next project!
+The above checkpoint is trained for 100K steps with small number of frames. We've already verified diffusion forcing works in latent diffusion setting and can be extended to many more tokens without sacrificing compositionally (with some addition techniques from this repo)! Stay tuned for our next project!
 
 ### Maze Planning:
 
