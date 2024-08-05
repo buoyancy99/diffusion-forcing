@@ -33,9 +33,9 @@ class DiffusionForcingPlanning(DiffusionForcingBase):
         self.action_mean = np.array(cfg.action_mean[: self.action_dim])
         self.action_std = np.array(cfg.action_std[: self.action_dim])
         self.open_loop_horizon = cfg.open_loop_horizon
-        self.plot_end_points = cfg.plot_start_goal and self.guidance_scale != 0
         self.padding_mode = cfg.padding_mode
         super().__init__(cfg)
+        self.plot_end_points = cfg.plot_start_goal and self.guidance_scale != 0
 
     def _build_model(self):
         mean = list(self.observation_mean) + list(self.action_mean)
