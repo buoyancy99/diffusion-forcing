@@ -41,7 +41,6 @@ class Diffusion(nn.Module):
         self.arch = cfg.architecture
         self.stabilization_level = cfg.stabilization_level
         self.is_causal = is_causal
-        self.guidance_fn = None
 
         self._build_model()
         self._build_buffer()
