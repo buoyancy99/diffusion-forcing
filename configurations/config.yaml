@@ -8,8 +8,8 @@ defaults:
 debug: false # global debug flag will be passed into configuration of experiment, dataset and algorithm
 
 wandb:
-  entity: scene-representation-group # wandb account name / organization name [fixme]
-  project: diffusion_forcing # wandb project name; if not provided, defaults to root folder name [fixme]
+  entity: null # wandb account name / organization name [fixme]
+  project: diffusion-forcing # wandb project name; if not provided, defaults to root folder name [fixme]
   mode: online # set wandb logging to online, offline or dryrun
 
 resume: null # wandb run id to resume logging and loading checkpoint from
