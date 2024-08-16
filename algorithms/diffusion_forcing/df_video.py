@@ -37,6 +37,7 @@ class DiffusionForcingVideo(DiffusionForcingBase):
                 namespace="training_vis",
                 logger=self.logger.experiment,
             )
+        return output_dict
 
     def on_validation_epoch_end(self, namespace="validation") -> None:
         if not self.validation_step_outputs:
