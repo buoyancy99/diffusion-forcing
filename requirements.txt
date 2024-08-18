@@ -20,3 +20,6 @@ pandas
 pyzmq
 pyrealsense2
 internetarchive
+h5py
+rotary_embedding_torch
+diffusers
