@@ -221,4 +221,4 @@ We provide a useful debug flag which you can enable by `python main.py debug=Tru
 ## Add slurm clusters
 
 It's very easy to add your own slurm clusters via adding a yaml file in `configurations/cluster`. You can take a look
-at `configurations/cluster/mit_supercloud.yaml` for example.
+at `configurations/cluster/mit_vision.yaml` for example.
