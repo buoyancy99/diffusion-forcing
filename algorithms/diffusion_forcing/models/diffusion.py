@@ -351,6 +351,15 @@ class Diffusion(nn.Module):
             curr_noise_level,
         )
 
+        # treating as stabilization would require us to scale with sqrt of alpha_cum
+        orig_x = x.clone().detach()
+        scaled_context = self.q_sample(
+            x,
+            clipped_curr_noise_level,
+            noise=torch.zeros_like(x),
+        )
+        x = torch.where(self.add_shape_channels(curr_noise_level < 0), scaled_context, orig_x)
+
         if guidance_fn is not None:
             raise NotImplementedError("Guidance function is not implemented for ddpm sampling yet.")
 
@@ -370,7 +379,7 @@ class Diffusion(nn.Module):
         x_pred = model_mean + torch.exp(0.5 * model_log_variance) * noise
 
         # only update frames where the noise level decreases
-        return torch.where(self.add_shape_channels(curr_noise_level == -1), x, x_pred)
+        return torch.where(self.add_shape_channels(curr_noise_level == -1), orig_x, x_pred)
 
     def ddim_sample_step(
         self,
