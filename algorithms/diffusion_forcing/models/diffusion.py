@@ -387,6 +387,15 @@ class Diffusion(nn.Module):
             curr_noise_level,
         )
 
+        # treating as stabilization would require us to scale with sqrt of alpha_cum
+        orig_x = x.clone().detach()
+        scaled_context = self.q_sample(
+            x,
+            clipped_curr_noise_level,
+            noise=torch.zeros_like(x),
+        )
+        x = torch.where(self.add_shape_channels(curr_noise_level < 0), scaled_context, orig_x)
+
         alpha = self.alphas_cumprod[clipped_curr_noise_level]
         alpha_next = torch.where(
             next_noise_level < 0,
@@ -441,7 +450,7 @@ class Diffusion(nn.Module):
         mask = curr_noise_level == next_noise_level
         x_pred = torch.where(
             self.add_shape_channels(mask),
-            x,
+            orig_x,
             x_pred,
         )
 
