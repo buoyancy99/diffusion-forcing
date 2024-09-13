@@ -1,5 +1,5 @@
 torch~=2.4.0
-torchvision~=0.15.1
+torchvision~=0.18.1
 lightning~=2.1.2
 wandb~=0.17.0
 hydra-core~=1.3.2
