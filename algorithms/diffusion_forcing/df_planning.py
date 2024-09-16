@@ -161,7 +161,11 @@ class DiffusionForcingPlanning(DiffusionForcingBase):
                     + [1 for _ in range(horizon)]  # try to reach the goal at any horizon
                     + [0] * (h_padded - horizon)  # don't guide padded entries due to horizon % frame_stack != 0
                 )
+                # mathematically, one may also try multiplying weight by sqrt(alpha_cum)
+                # this means you put higher weight to less noisy terms
+                # which might be better but we haven't tried yet
                 weight = torch.from_numpy(weight).float().to(self.device)
+                
                 dist_o, dist_a, _ = self.split_bundle(dist)  # guidance observation and action with separate weights
                 dist_a = torch.sum(dist_a, -1, keepdim=True).sqrt()
                 dist_o = reduce(dist_o, "t b (n c) -> t b n", "sum", n=self.observation_dim // 2).sqrt()
