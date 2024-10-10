@@ -356,7 +356,7 @@ class DiffusionForcingPlanning(DiffusionForcingBase):
             )
 
     def pad_init(self, x, batch_first=False):
-        x = repeat(x, "b ... -> fs b ...", fs=self.frame_stack)
+        x = repeat(x, "b ... -> fs b ...", fs=self.frame_stack).clone()
         if self.padding_mode == "zero":
             x[: self.frame_stack - 1] = 0
         elif self.padding_mode != "same":
