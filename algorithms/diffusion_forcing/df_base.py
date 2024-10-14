@@ -216,6 +216,7 @@ class DiffusionForcingBase(BasePytorchAlgo):
         return np.clip(scheduling_matrix, 0, self.sampling_timesteps)
 
     def reweight_loss(self, loss, weight=None):
+        # Note there is another part of loss reweighting (fused_snr) inside the Diffusion class!
         loss = rearrange(loss, "t b (fs c) ... -> t b fs c ...", fs=self.frame_stack)
         if weight is not None:
             expand_dim = len(loss.shape) - len(weight.shape) - 1
