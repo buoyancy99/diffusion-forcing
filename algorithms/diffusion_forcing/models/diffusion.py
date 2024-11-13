@@ -355,8 +355,7 @@ class Diffusion(nn.Module):
         orig_x = x.clone().detach()
         scaled_context = self.q_sample(
             x,
-            clipped_curr_noise_level,
-            noise=torch.zeros_like(x),
+            clipped_curr_noise_level
         )
         x = torch.where(self.add_shape_channels(curr_noise_level < 0), scaled_context, orig_x)
 
