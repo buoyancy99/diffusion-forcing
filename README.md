@@ -7,7 +7,7 @@
 
 This is the v1.5 code base for our paper [Diffusion Forcing: Next-token Prediction Meets Full-Sequence Diffusion](https://boyuan.space/diffusion-forcing). The **main** branch contains our latest reimplementation with temporal attention (recommended) while the **paper** branch contains RNN code used by original paper for reproduction purpose. 
 
-[Diffusion Forcing v2](https://boyuan.space/history-guidance/) is released! It is a stronger technique to roll out extremely long video generation, with modern architectures like DiT and latent diffusion. Please check out its [github repo](https://github.com/kwsong0113/diffusion-forcing-transformer) as well if you are only interested in video generation.
+🔥 New: [Diffusion Forcing v2](https://boyuan.space/history-guidance/) is released! It is a stronger technique to roll out extremely long video generation, with modern architectures like DiT and latent diffusion. Please check out its [github repo](https://github.com/kwsong0113/diffusion-forcing-transformer) as well if you are only interested in video generation.
 
 ![plot](teaser.png)
 
