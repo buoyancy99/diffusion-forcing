@@ -12,14 +12,13 @@ This is the v1.5 code base for our paper [Diffusion Forcing: Next-token Predicti
 ![plot](teaser.png)
 
 ```
-@misc{chen2024diffusionforcingnexttokenprediction,
-      title={Diffusion Forcing: Next-token Prediction Meets Full-Sequence Diffusion},
-      author={Boyuan Chen and Diego Marti Monso and Yilun Du and Max Simchowitz and Russ Tedrake and Vincent Sitzmann},
-      year={2024},
-      eprint={2407.01392},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2407.01392},
+@article{chen2025diffusion,
+  title={Diffusion forcing: Next-token prediction meets full-sequence diffusion},
+  author={Chen, Boyuan and Mart{\'\i} Mons{\'o}, Diego and Du, Yilun and Simchowitz, Max and Tedrake, Russ and Sitzmann, Vincent},
+  journal={Advances in Neural Information Processing Systems},
+  volume={37},
+  pages={24081--24125},
+  year={2025}
 }
 ```
 
