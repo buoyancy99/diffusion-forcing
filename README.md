@@ -20,7 +20,7 @@ This is the v1.5 code base for our paper [Diffusion Forcing: Next-token Predicti
 }
 ```
 
-# 🔥 Diffusion Forcing v2: 
+# 🔥 Diffusion Forcing v2 (new repo): 
 [Diffusion Forcing v2](https://boyuan.space/history-guidance/) has been released! It is a stronger technique to roll out extremely long video generation, with modern architectures like DiT and latent diffusion. Please check out its [github repo](https://github.com/kwsong0113/diffusion-forcing-transformer) as well if you are only interested in video generation. I will reimplement diffusion forcing 2 on robot and planning domains here when I have time.
 
 # Project Instructions
