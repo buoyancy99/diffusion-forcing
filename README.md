@@ -5,9 +5,7 @@
 [Boyuan Chen<sup>1</sup>](https://boyuan.space/), [Diego Martí Monsó<sup>2</sup>](https://www.linkedin.com/in/diego-marti/?originalSubdomain=de), [ Yilun Du<sup>1</sup>](https://yilundu.github.io/), [Max Simchowitz<sup>1</sup>](https://msimchowitz.github.io/), [Russ Tedrake<sup>1</sup>](https://groups.csail.mit.edu/locomotion/russt.html), [Vincent Sitzmann<sup>1</sup>](https://www.vincentsitzmann.com/) <br/>
 <sup>1</sup>MIT <sup>2</sup>Technical University of Munich </br>
 
-This is the v1.5 code base for our paper [Diffusion Forcing: Next-token Prediction Meets Full-Sequence Diffusion](https://boyuan.space/diffusion-forcing). The **main** branch contains our latest reimplementation with temporal attention (recommended) while the **paper** branch contains RNN code used by original paper for reproduction purpose. 
-
-🔥 New: [Diffusion Forcing v2](https://boyuan.space/history-guidance/) is released! It is a stronger technique to roll out extremely long video generation, with modern architectures like DiT and latent diffusion. Please check out its [github repo](https://github.com/kwsong0113/diffusion-forcing-transformer) as well if you are only interested in video generation.
+This is the v1.5 code base for our paper [Diffusion Forcing: Next-token Prediction Meets Full-Sequence Diffusion](https://boyuan.space/diffusion-forcing). The **main** branch contains our latest reimplementation with temporal attention (recommended) while the **paper** branch contains RNN code used by original paper for reproduction purpose. [Diffusion Forcing v2](https://boyuan.space/history-guidance/) has been released too! If you are only interested in video generation, please use it instead.
 
 ![plot](teaser.png)
 
@@ -21,6 +19,9 @@ This is the v1.5 code base for our paper [Diffusion Forcing: Next-token Predicti
   year={2025}
 }
 ```
+
+# 🔥 Diffusion Forcing v2: 
+[Diffusion Forcing v2](https://boyuan.space/history-guidance/) has been released! It is a stronger technique to roll out extremely long video generation, with modern architectures like DiT and latent diffusion. Please check out its [github repo](https://github.com/kwsong0113/diffusion-forcing-transformer) as well if you are only interested in video generation. I will reimplement diffusion forcing 2 on robot and planning domains here when I have time.
 
 # Project Instructions
 
