@@ -35,6 +35,20 @@ Install dependencies for time series, video and robotics:
 pip install -r requirements.txt
 ```
 
+### Apple Silicon (MPS) setup with uv
+
+On an Apple Silicon Mac, create a Python 3.10 environment and install the
+platform-specific dependency set with [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv venv --python 3.10
+uv pip install --python .venv/bin/python -r requirements.txt
+```
+
+The macOS dependency markers select the tested PyTorch MPS build and omit
+`pyrealsense2`, which does not provide a macOS wheel. The robotics workflows
+that require RealSense remain unsupported on macOS.
+
 [Sign up](https://wandb.ai/site) a wandb account for cloud logging and checkpointing. In command line, run `wandb login` to login.
 
 Then modify the wandb entity in `configurations/config.yaml` to your wandb account.
@@ -57,6 +71,31 @@ Our visualization is side by side, with prediction on the left and ground truth 
 
 Autoregressively generate minecraft video with 1x the length it's trained on:
 `python -m main +name=sample_minecraft_pretrained load=outputs/minecraft.ckpt experiment.tasks=[validation]`
+
+For a local, batch-1 Apple Silicon run that writes the visualization to an
+offline W&B directory, use:
+
+```bash
+TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1 \
+caffeinate -i uv run --python .venv/bin/python python -m main \
+  +name=sample_minecraft_pretrained \
+  load=outputs/minecraft.ckpt \
+  'experiment.tasks=[validation]' \
+  experiment.validation.batch_size=1 \
+  experiment.validation.data.num_workers=1 \
+  experiment.validation.precision=32-true \
+  'algorithm.metrics=[]' \
+  wandb.entity=local \
+  wandb.mode=offline
+```
+
+`TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1` is required for this legacy Lightning
+checkpoint with current PyTorch. Only use this setting for checkpoints you
+trust. After the run finishes, locate the generated visualization with:
+
+```bash
+find outputs -type f -path '*/media/videos/*' -print
+```
 
 To let the model roll out **longer than it's trained on**, simply append `dataset.validation_multiplier=8` to the above commands, and it will rollout `8x` longer than maximum sequence length it's trained on.
 

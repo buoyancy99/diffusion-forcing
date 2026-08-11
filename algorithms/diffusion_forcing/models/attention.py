@@ -53,21 +53,23 @@ class Attention(nn.Module):
             SDPBackend.EFFICIENT_ATTENTION,
         ]
 
-        device_properties = torch.cuda.get_device_properties(torch.device("cuda"))
-
-        if device_properties.major >= 8 and device_properties.minor == 0:
-            print_once(
-                "A100 GPU detected, using flash attention if input tensor is on cuda"
-            )
-            self.cuda_backends = [SDPBackend.FLASH_ATTENTION]
+        if torch.cuda.is_available():
+            device_properties = torch.cuda.get_device_properties(torch.device("cuda"))
+            if device_properties.major >= 8 and device_properties.minor == 0:
+                print_once(
+                    "A100 GPU detected, using flash attention if input tensor is on cuda"
+                )
+                self.cuda_backends = [SDPBackend.FLASH_ATTENTION]
+            else:
+                print_once(
+                    "Non-A100 GPU detected, using math or mem efficient attention if input tensor is on cuda"
+                )
+                self.cuda_backends = [
+                    SDPBackend.MATH,
+                    SDPBackend.EFFICIENT_ATTENTION,
+                ]
         else:
-            print_once(
-                "Non-A100 GPU detected, using math or mem efficient attention if input tensor is on cuda"
-            )
-            self.cuda_backends = [
-                SDPBackend.MATH,
-                SDPBackend.EFFICIENT_ATTENTION,
-            ]
+            self.cuda_backends = [SDPBackend.MATH]
 
     def forward(self, hidden_states: torch.Tensor, is_causal: bool = False):
         q, k, v = self.to_qkv(hidden_states).chunk(3, dim=-1)

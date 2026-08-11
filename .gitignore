@@ -139,6 +139,7 @@ cython_debug/
 
 # datasets
 *.hdf5
+/quickstart_atten.tar.gz
 
 # Hydra outputs
 outputs/

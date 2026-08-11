@@ -81,11 +81,11 @@ class MinecraftVideoDataset(BaseVideoDataset):
 
         video = video[frame_idx : frame_idx + self.n_frames]  # (t, h, w, 3)
         actions = actions[frame_idx : frame_idx + self.n_frames]  # (t, )
-        actions = np.eye(4)[actions]  # (t, 3)
+        actions = np.eye(4, dtype=np.float32)[actions]  # (t, 4)
 
         pad_len = self.n_frames - len(video)
 
-        nonterminal = np.ones(self.n_frames)
+        nonterminal = np.ones(self.n_frames, dtype=np.float32)
         if len(video) < self.n_frames:
             video = np.pad(video, ((0, pad_len), (0, 0), (0, 0), (0, 0)))
             actions = np.pad(actions, ((0, pad_len),))
